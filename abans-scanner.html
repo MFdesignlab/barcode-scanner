@@ -303,7 +303,6 @@
 
     .btn-submit {
       background: linear-gradient(135deg, #8f00c8af, #0099c8af, #00c885b2);
-      color: #000;
       box-shadow: 0 4px 15px rgba(127, 0, 200, 0.336);
     }
 
@@ -450,7 +449,7 @@
 
         <div class="form-group">
           <label><span class="emoji-icon">⚡</span>Gas Cylinder Type</label>
-          <select id="Gas_Cylinder" required>
+          <select id="Gas_Cylinder_Type" required>
             <option value="">-- Select Gas Type --</option>
             <option value="R22">R22</option>
             <option value="R32">R32</option>
@@ -743,7 +742,7 @@
       const barcode = barcodeInput.value.trim();
       const technicianEPF = document.getElementById("Technician_EPF").value.trim();
       const jobId = document.getElementById("Job_id").value.trim();
-      const gasCylinder = document.getElementById("Gas_Cylinder").value;
+      const gasCylinder = document.getElementById("Gas_Cylinder_Type").value;
       const gasConsumption = document.getElementById("Gas_Consumption").value.trim();
 
       // Validation
@@ -774,10 +773,10 @@
       const data = {
         Scanned_Date: new Date().toISOString().split("T")[0],
         Scanned_Time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
-        Barcode: barcode,
+        Gas_Cylinder_Serial: barcode,
         Technician_EPF: technicianEPF,
         Job_id: jobId,
-        Gas_Cylinder: gasCylinder,
+        Gas_Cylinder_Type: gasCylinder,
         Gas_Consumption: parseFloat(gasConsumption),
         Device: navigator.userAgent
       };
@@ -794,7 +793,7 @@
 
         if (!response.ok) throw new Error(`Server error: ${response.status}`);
 
-        showToast("✅ Data saved successfully!", "success");
+        showToast("✅ Data saved to Excel successfully!", "success");
         vibrate();
 
         setTimeout(() => clearForm(), 1500);
