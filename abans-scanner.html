@@ -793,7 +793,7 @@
 
         if (!response.ok) throw new Error(`Server error: ${response.status}`);
 
-        showToast("✅ Data saved to Excel successfully!", "success");
+        showToast("✅ Data saved successfully!", "success");
         vibrate();
 
         setTimeout(() => clearForm(), 1500);
