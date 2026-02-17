@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Abans Gas Consumption Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --purple-deep:  #3b0764;
+    --purple-dark:  #5b21b6;
+    --purple-main:  #7c3aed;
+    --purple-mid:   #a78bfa;
+    --purple-soft:  #ede9fe;
+    --purple-pale:  #f5f3ff;
+    --blue-dark:    #1e3a8a;
+    --blue-main:    #2563eb;
+    --blue-mid:     #60a5fa;
+    --white:        #ffffff;
+    --grey-100:     #f8f7ff;
+    --grey-200:     #e9e7f5;
+    --grey-500:     #8b85a8;
+    --grey-700:     #4b4565;
+    --grey-900:     #1e1a32;
+    --green:        #10b981;
+    --red:          #ef4444;
+    --amber:        #f59e0b;
+    --shadow-sm:    0 2px 8px rgba(91,33,182,.08);
+    --shadow-md:    0 6px 24px rgba(91,33,182,.13);
+    --shadow-lg:    0 16px 48px rgba(91,33,182,.16);
+    --radius:       16px;
+  }
+
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: linear-gradient(145deg, #f5f3ff 0%, #ffffff 55%, #ede9fe 100%);
+    min-height: 100vh;
+    color: var(--grey-900);
+  }
+
+  /* ── TOP BAR ── */
+  .top-bar {
+    background: linear-gradient(135deg, var(--purple-deep) 0%, var(--purple-dark) 50%, var(--blue-dark) 100%);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 24px rgba(59,7,100,.4);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .top-bar-left { display:flex; align-items:center; gap:14px; }
+  .top-bar-logo {
+    width:42px; height:42px;
+    background: rgba(255,255,255,.15);
+    border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:22px; flex-shrink:0;
+  }
+  .top-bar-title { color:#fff; }
+  .top-bar-title h1 { font-size:19px; font-weight:700; letter-spacing:-.3px; }
+  .top-bar-title p  { font-size:11px; opacity:.7; margin-top:1px; }
+
+  .top-bar-right { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+
+  .last-updated-box {
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 8px;
+    padding: 6px 12px;
+    display: flex; flex-direction:column; align-items:flex-end;
+  }
+  .last-updated-label { font-size:9px; color:rgba(255,255,255,.55); text-transform:uppercase; letter-spacing:.8px; }
+  .last-updated-val   { font-size:12px; color:#fff; font-family:'DM Mono',monospace; font-weight:500; }
+
+  .scan-btn {
+    background: linear-gradient(135deg, #7c3aed, #2563eb);
+    border: 1px solid rgba(255,255,255,.3);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'DM Sans',sans-serif;
+    transition: all .2s;
+    display:flex; align-items:center; gap:6px;
+    text-decoration:none;
+    box-shadow: 0 2px 10px rgba(37,99,235,.3);
+  }
+  .scan-btn:hover { transform:translateY(-1px); box-shadow:0 4px 16px rgba(37,99,235,.45); }
+
+  .refresh-btn {
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.25);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'DM Sans',sans-serif;
+    transition: all .2s;
+    display:flex; align-items:center; gap:6px;
+  }
+  .refresh-btn:hover { background:rgba(255,255,255,.25); }
+  .refresh-btn.spinning .spin-icon { display:inline-block; animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* ── MAIN ── */
+  .main { max-width:1400px; margin:0 auto; padding:24px 20px 48px; }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 22px;
+    border: 1px solid var(--grey-200);
+  }
+  .filter-label { font-size:11px; font-weight:700; color:#c0c5bd; text-transform:uppercase; letter-spacing:.8px; white-space:nowrap; }
+  .filter-group { display:flex; align-items:center; gap:6px; }
+  .filter-select, .filter-input {
+    background: var(--purple-pale);
+    border: 1px solid var(--purple-mid);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 13px;
+    font-family: 'DM Sans',sans-serif;
+    color: var(--purple-dark);
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .filter-select:focus, .filter-input:focus { border-color:var(--purple-main); }
+  .filter-divider { width:1px; height:24px; background:var(--grey-200); flex-shrink:0; }
+  .clear-btn {
+    margin-left:auto;
+    background: var(--purple-soft);
+    color: var(--purple-dark);
+    border: none;
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'DM Sans',sans-serif;
+    transition: all .2s;
+    white-space:nowrap;
+  }
+  .clear-btn:hover { background:var(--purple-main); color:#fff; }
+
+  /* ── SECTION TITLE ── */
+  .section-title {
+    font-size:10px; font-weight:700; letter-spacing:1.4px;
+    text-transform:uppercase; color:var(--purple-mid);
+    margin-bottom:10px; padding-left:2px;
+  }
+
+  /* ── KPI GRID (6 cards) ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  @media(max-width:1200px){ .kpi-grid{ grid-template-columns:repeat(3,1fr); } }
+  @media(max-width:700px){  .kpi-grid{ grid-template-columns:repeat(2,1fr); } }
+
+  .kpi-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 18px 16px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--grey-200);
+    position: relative;
+    overflow: hidden;
+    transition: transform .25s, box-shadow .25s;
+  }
+  .kpi-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); }
+  .kpi-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:3px;
+    background: linear-gradient(90deg, var(--purple-main), var(--blue-mid));
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .kpi-card.g::before { background: linear-gradient(90deg,#059669,#34d399); }
+  .kpi-card.a::before { background: linear-gradient(90deg,#d97706,#fbbf24); }
+  .kpi-card.b::before { background: linear-gradient(90deg,var(--blue-dark),var(--blue-mid)); }
+  .kpi-card.t::before { background: linear-gradient(90deg,#0f766e,#2dd4bf); }
+  .kpi-card.w::before { background: linear-gradient(90deg,#7e22ce,#c084fc); }
+
+  .kpi-icon {
+    width:32px; height:32px; border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; margin-bottom:12px;
+    background: var(--purple-soft);
+  }
+  .kpi-card.g .kpi-icon { background:#d1fae5; }
+  .kpi-card.a .kpi-icon { background:#fef3c7; }
+  .kpi-card.b .kpi-icon { background:#dbeafe; }
+  .kpi-card.t .kpi-icon { background:#ccfbf1; }
+  .kpi-card.w .kpi-icon { background:#f3e8ff; }
+
+  .kpi-label { font-size:10px; font-weight:700; color:var(--grey-500); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
+  .kpi-value { font-size:26px; font-weight:700; color:var(--grey-900); letter-spacing:-1px; line-height:1; }
+  .kpi-value span { font-size:12px; font-weight:500; color:var(--grey-500); margin-left:2px; }
+  .kpi-sub  { font-size:11px; color:var(--grey-500); margin-top:5px; }
+
+  /* ── CHARTS ROW — line wider, pie compact ── */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1.7fr 1fr;
+    gap: 18px;
+    margin-bottom: 24px;
+    align-items: stretch;
+  }
+  @media(max-width:900px){ .charts-row{ grid-template-columns:1fr; } }
+
+  .chart-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 22px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--grey-200);
+    display: flex;
+    flex-direction: column;
+  }
+  .chart-card canvas {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .chart-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:18px; }
+  .chart-title   { font-size:14px; font-weight:700; color:var(--grey-900); }
+  .chart-subtitle{ font-size:11px; color:var(--grey-500); margin-top:2px; }
+
+  /* ── TABLES OUTER ── */
+  .tables-outer {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 18px;
+  }
+  @media(max-width:900px){ .tables-outer{ grid-template-columns:1fr; } }
+
+  .table-frame {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 20px 18px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--grey-200);
+    display: flex; flex-direction:column; gap:24px;
+  }
+
+  .table-block {}
+  .table-block-header {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:10px; flex-wrap:wrap; gap:6px;
+  }
+  .table-block-title { font-size:13px; font-weight:700; color:var(--grey-900); }
+  .table-search {
+    background: var(--purple-pale);
+    border: 1px solid var(--grey-200);
+    border-radius: 7px;
+    padding: 4px 9px;
+    font-size:12px; font-family:'DM Sans',sans-serif;
+    color:var(--grey-900); outline:none; width:130px;
+    transition:border-color .2s;
+  }
+  .table-search:focus { border-color:var(--purple-main); }
+
+  table { width:100%; border-collapse:collapse; }
+  th {
+    background: var(--purple-soft);
+    color: var(--purple-dark);
+    font-size:10px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.5px;
+    padding:9px 10px; text-align:left;
+    border-bottom:2px solid var(--purple-mid);
+  }
+  th.r, td.r { text-align:right; }
+  td {
+    padding:8px 10px; font-size:13px;
+    color:var(--grey-700);
+    border-bottom:1px solid var(--grey-200);
+    font-family:'DM sans',monospace;
+  }
+  tr:last-child td { border-bottom:none; }
+  tbody tr:hover td { background:var(--grey-100); }
+  td.job-cell   { font-family:'DM Sans',sans-serif; font-weight:600; color:var(--grey-900); }
+  td.num-cell   { font-weight:600; color:var(--purple-dark); }
+
+  /* Drilldown group header row */
+  .grp-hdr td {
+    background: var(--purple-soft);
+    font-family:'DM Sans',sans-serif !important;
+    font-weight:700 !important;
+    color: var(--purple-dark) !important;
+    font-size:12px !important;
+    padding:8px 10px;
+    border-top:1px solid var(--purple-mid);
+  }
+  /* Drilldown sub-rows: black, not bold */
+  .sub-row td {
+    color: #111 !important;
+    font-weight:400 !important;
+    font-size:12px;
+  }
+
+  .table-separator { height:1px; background:var(--grey-200); }
+
+  /* Pagination */
+  .pagination { display:flex; align-items:center; justify-content:space-between; margin-top:10px; flex-wrap:wrap; gap:6px; }
+  .pag-info { font-size:11px; color:var(--grey-500); }
+  .pag-btns { display:flex; gap:3px; }
+  .pag-btn {
+    width:26px; height:26px; border-radius:6px;
+    border:1px solid var(--grey-200); background:var(--white);
+    color:var(--grey-700); font-size:11px; font-weight:600;
+    cursor:pointer; font-family:'DM Sans',sans-serif;
+    display:flex; align-items:center; justify-content:center;
+    transition:all .15s;
+  }
+  .pag-btn:hover { background:var(--purple-soft); border-color:var(--purple-mid); color:var(--purple-dark); }
+  .pag-btn.active { background:var(--purple-main); border-color:var(--purple-main); color:#fff; }
+  .pag-btn:disabled { opacity:.3; cursor:not-allowed; }
+
+  /* ── OVERLAYS ── */
+  .overlay {
+    position:fixed; inset:0;
+    background:rgba(245,243,255,.94);
+    display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:20px; z-index:999;
+  }
+  .spinner-ring {
+    width:50px; height:50px;
+    border:4px solid var(--purple-soft);
+    border-top-color:var(--purple-main);
+    border-radius:50%;
+    animation:spin .8s linear infinite;
+  }
+  .overlay-msg { font-size:15px; font-weight:600; color:var(--purple-dark); }
+  .error-card {
+    background:var(--white); border-radius:var(--radius);
+    padding:30px; max-width:400px; text-align:center;
+    box-shadow:var(--shadow-lg); border:1px solid #fca5a5;
+  }
+  .error-card h2 { color:var(--red); font-size:17px; margin-bottom:8px; }
+  .error-card p  { color:var(--grey-500); font-size:13px; line-height:1.6; }
+  .retry-btn {
+    margin-top:16px; background:var(--purple-main); color:#fff;
+    border:none; padding:9px 22px; border-radius:8px;
+    font-size:13px; font-weight:700; font-family:'DM Sans',sans-serif;
+    cursor:pointer; transition:background .2s;
+  }
+  .retry-btn:hover { background:var(--purple-dark); }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="top-bar-left">
+    <div class="top-bar-logo">⚡</div>
+    <div class="top-bar-title">
+      <h1>Gas Consumption Dashboard</h1>
+      <p>Abans Service Center — Real-time analytics</p>
+    </div>
+  </div>
+  <div class="top-bar-right">
+    <div class="last-updated-box">
+      <span class="last-updated-label">Last Updated</span>
+      <span class="last-updated-val" id="lastUpdated">–</span>
+    </div>
+    
+    <button class="refresh-btn" onclick="loadData()" id="refreshBtn">
+      <span class="spin-icon">↻</span> Refresh
+    </button>
+    <a class="scan-btn" href="javascript:void(0)" >
+      📷 Open Scanner
+    </a>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="overlay" id="loadingOverlay">
+  <div class="spinner-ring"></div>
+  <div class="overlay-msg">Loading data…</div>
+</div>
+
+<!-- ERROR -->
+<div class="overlay" id="errorOverlay" style="display:none;">
+  <div class="error-card">
+    <h2>❌ Error Loading Data</h2>
+    <p id="errorMsg">Failed to fetch</p>
+    <button class="retry-btn" onclick="loadData()">Retry</button>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main" id="mainContent" style="display:none;">
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <span class="filter-label">Filters</span>
+
+    <div class="filter-group">
+      <span style="font-size:11px;font-weight:600;color:var(--grey-500);">Year</span>
+      <select class="filter-select" id="filterYear" onchange="applyFilters()">
+        <option value="2025">2025</option>
+        <option value="2026" selected>2026</option>
+        <option value="2027">2027</option>
+        <option value="2028">2028</option>
+        <option value="2029">2029</option>
+        <option value="2030">2030</option>
+      </select>
+    </div>
+
+    <div class="filter-divider"></div>
+
+    <div class="filter-group">
+      <span style="font-size:11px;font-weight:600;color:var(--grey-500);">Month</span>
+      <select class="filter-select" id="filterMonth" onchange="applyFilters()">
+        <option value="all">All Months</option>
+        <option value="0">January</option><option value="1">February</option>
+        <option value="2">March</option><option value="3">April</option>
+        <option value="4">May</option><option value="5">June</option>
+        <option value="6">July</option><option value="7">August</option>
+        <option value="8">September</option><option value="9">October</option>
+        <option value="10">November</option><option value="11">December</option>
+      </select>
+    </div>
+
+    <div class="filter-divider"></div>
+
+    <div class="filter-group">
+      <span style="font-size:11px;font-weight:600;color:var(--grey-500);">Gas Type</span>
+      <select class="filter-select" id="filterGasType" onchange="applyFilters()">
+        <option value="all">All Types</option>
+        <option value="R22">R22</option>
+        <option value="R32">R32</option>
+        <option value="R410A">R410A</option>
+        <option value="R134A">R134A</option>
+      </select>
+    </div>
+
+    <div class="filter-divider"></div>
+
+    <div class="filter-group">
+      <span style="font-size:11px;font-weight:600;color:var(--grey-500);">Technician EPF</span>
+      <input type="text" class="filter-input" id="filterEPF" placeholder="e.g. 5775" oninput="applyFilters()" style="width:100px;"/>
+    </div>
+
+    <div class="filter-divider"></div>
+
+    <div class="filter-group">
+      <span style="font-size:11px;font-weight:600;color:var(--grey-500);">Cylinder Serial</span>
+      <input type="text" class="filter-input" id="filterSerial" placeholder="e.g. GAS32KG" oninput="applyFilters()" style="width:120px;"/>
+    </div>
+
+    <button class="clear-btn" onclick="clearFilters()">✕ Clear</button>
+  </div>
+
+  <!-- KPI CARDS (6 cards) -->
+  <div class="section-title">Key Performance Indicators</div>
+  <div class="kpi-grid">
+
+    <div class="kpi-card">
+      <div class="kpi-icon">🛢️</div>
+      <div class="kpi-label">Total Cylinders</div>
+      <div class="kpi-value" id="kpiCylinders">—</div>
+      <div class="kpi-sub">Distinct serials</div>
+    </div>
+
+    <div class="kpi-card b">
+      <div class="kpi-icon">💼</div>
+      <div class="kpi-label">Jobs This Month</div>
+      <div class="kpi-value" id="kpiJobsMonth">—</div>
+      <div class="kpi-sub" id="kpiJobsMonthSub">Distinct job IDs</div>
+    </div>
+
+    <div class="kpi-card w">
+      <div class="kpi-icon">📆</div>
+      <div class="kpi-label">Gas This Week</div>
+      <div class="kpi-value" id="kpiGasWeek">—<span>kg</span></div>
+      <div class="kpi-sub" id="kpiGasWeekSub">Current week</div>
+    </div>
+
+    <div class="kpi-card g">
+      <div class="kpi-icon">⚡</div>
+      <div class="kpi-label">Gas This Month</div>
+      <div class="kpi-value" id="kpiGasMonth">—<span>kg</span></div>
+      <div class="kpi-sub" id="kpiGasMonthSub">Current month</div>
+    </div>
+
+    <div class="kpi-card a">
+      <div class="kpi-icon">📅</div>
+      <div class="kpi-label">Gas Prev Month</div>
+      <div class="kpi-value" id="kpiGasPrev">—<span>kg</span></div>
+      <div class="kpi-sub" id="kpiGasPrevSub">Previous month</div>
+    </div>
+
+    <div class="kpi-card t">
+      <div class="kpi-icon">📊</div>
+      <div class="kpi-label">Gas This Year</div>
+      <div class="kpi-value" id="kpiGasYear">—<span>kg</span></div>
+      <div class="kpi-sub" id="kpiGasYearSub">Current year total</div>
+    </div>
+
+  </div>
+
+  <!-- CHARTS -->
+  <div class="section-title">Analytics</div>
+  <div class="charts-row">
+
+    <!-- Line Chart -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Monthly Gas Consumption</div>
+          <div class="chart-subtitle" id="lineChartSub">Current year — kg per month</div>
+        </div>
+      </div>
+      <canvas id="lineChart" height="110"></canvas>
+    </div>
+
+    <!-- ── Pie Chart — equal size, legend top-right, arrows on doughnut ── -->
+    <div class="chart-card" style="overflow:hidden; position:relative;">
+      <!-- Header row: title left, legend box right -->
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:18px; gap:12px;">
+        <div>
+          <div class="chart-title">Gas Type Breakdown</div>
+          <div class="chart-subtitle" id="pieChartSub">Current year — by type</div>
+        </div>
+        <!-- LEGEND BOX — top-right, inline horizontal labels -->
+        <div id="pieLegendBox" style="
+          background: var(--purple-pale);
+          border: 1px solid var(--purple-soft);
+          border-radius: 10px;
+          padding: 6px 12px;
+          display: flex;
+          flex-direction: row;
+          flex-wrap: wrap;
+          gap: 6px 14px;
+          flex-shrink: 0;
+          align-self: flex-start;
+        "></div>
+      </div>
+      <!-- Doughnut centred below -->
+      <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+        <canvas id="pieChart" style="max-height:310px; max-width:310px;"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TABLES -->
+  <div class="section-title">Summary Tables</div>
+  <div class="tables-outer">
+
+    <!-- LEFT FRAME: 3 tables -->
+    <div class="table-frame">
+
+      <!-- T1: Job Consumption -->
+      <div class="table-block">
+        <div class="table-block-header">
+          <div class="table-block-title">💼 Job Consumption</div>
+          <input class="table-search" id="searchT1" placeholder="Search job…" oninput="renderT1()"/>
+        </div>
+        <table>
+          <thead><tr><th>Job ID</th><th class="r">Gas (kg)</th></tr></thead>
+          <tbody id="bodyT1"></tbody>
+        </table>
+        <div class="pagination">
+          <span class="pag-info" id="infoT1"></span>
+          <div class="pag-btns" id="pagT1"></div>
+        </div>
+      </div>
+
+      <div class="table-separator"></div>
+
+      <!-- T2: Cylinder Consumption -->
+      <div class="table-block">
+        <div class="table-block-header">
+          <div class="table-block-title">🛢️ Cylinder Consumption</div>
+          <input class="table-search" id="searchT2" placeholder="Search serial…" oninput="renderT2()"/>
+        </div>
+        <table>
+          <thead><tr><th>Cylinder Serial</th><th class="r">Gas (kg)</th></tr></thead>
+          <tbody id="bodyT2"></tbody>
+        </table>
+        <div class="pagination">
+          <span class="pag-info" id="infoT2"></span>
+          <div class="pag-btns" id="pagT2"></div>
+        </div>
+      </div>
+
+      <div class="table-separator"></div>
+
+      <!-- T4: Technician Consumption -->
+      <div class="table-block">
+        <div class="table-block-header">
+          <div class="table-block-title">👷 Technician Consumption</div>
+          <input class="table-search" id="searchT4" placeholder="Search EPF…" oninput="renderT4()"/>
+        </div>
+        <table>
+          <thead><tr><th>Technician EPF</th><th class="r">Gas (kg)</th></tr></thead>
+          <tbody id="bodyT4"></tbody>
+        </table>
+        <div class="pagination">
+          <span class="pag-info" id="infoT4"></span>
+          <div class="pag-btns" id="pagT4"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT FRAME: Drilldown — now with TWO search inputs -->
+    <div class="table-frame">
+      <div class="table-block">
+        <div class="table-block-header">
+          <div class="table-block-title">🔍 Job → Cylinder Drilldown</div>
+          <!-- ▼ CHANGE: two search boxes — Job and Serial -->
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <input class="table-search" id="searchT3"
+                   placeholder="Search job…"
+                   oninput="renderT3()"
+                   style="width:108px;"/>
+            <input class="table-search" id="searchT3Serial"
+                   placeholder="Search serial…"
+                   oninput="renderT3()"
+                   style="width:120px;"/>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Job ID / Cylinder Serial</th><th class="r">Gas (kg)</th></tr></thead>
+          <tbody id="bodyT3"></tbody>
+        </table>
+        <div class="pagination">
+          <span class="pag-info" id="infoT3"></span>
+          <div class="pag-btns" id="pagT3"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tables-outer -->
+
+</div><!-- /main -->
+
+<script>
+// ============================================================
+// CONFIG — replace URL with your Power Automate endpoint
+// ============================================================
+const JSON_URL = "https://default90edf8b893d14bb6bb173646f2115b.a6.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/f97b700d943e4ce6938c5663726e87fa/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-NBrF4HA0eH0SKcowgcVUwf48KyNENFkNEESL1pjKHo";
+
+const SCANNER_URL = "https://mfdesignlab.github.io/barcode-scanner/abans-scanner.html";
+document.querySelector('.scan-btn').setAttribute('href', SCANNER_URL);
+
+const MONTHS      = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+// Richer purple-to-blue palette for pie
+const PIE_COLORS = ["#3b0764","#5b21b6","#7c3aed","#1e3a8a","#2563eb","#60a5fa","#a78bfa","#c084fc"];
+
+// ============================================================
+// STATE
+// ============================================================
+let allData  = [];
+let filtered = [];
+
+let lineChartObj = null;
+let pieChartObj  = null;
+
+const pagState = {
+  t1:{ page:1, perPage:20 },
+  t2:{ page:1, perPage:10 },
+  t3:{ page:1, perPage:10 },
+  t4:{ page:1, perPage:10 },
+};
+
+// ============================================================
+// FETCH
+// ============================================================
+async function loadData() {
+  showLoading(true);
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+
+  try {
+    const res = await fetch(JSON_URL, { method:"POST" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+
+    const json = await res.json();
+    let rows = Array.isArray(json) ? json : (json.body || []);
+
+    allData = sanitise(rows);
+    console.log('Loaded', rows.length, 'raw →', allData.length, 'clean records');
+
+    const curYear = String(new Date().getFullYear());
+    const fy = document.getElementById('filterYear');
+    if ([...fy.options].some(o => o.value === curYear)) fy.value = curYear;
+
+    applyFilters();
+
+    const now = new Date();
+    document.getElementById('lastUpdated').textContent =
+      now.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) +
+      '  ' + now.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+    showLoading(false);
+    document.getElementById('mainContent').style.display = 'block';
+
+  } catch(e) {
+    console.error(e);
+    showError(e.message);
+  }
+
+  btn.classList.remove('spinning');
+}
+
+// ============================================================
+// SANITISE
+// ============================================================
+function excelDateToJSDate(serial) {
+  if (!serial) return null;
+  const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+  const jsDate = new Date(excelEpoch.getTime() + serial * 86400000);
+  return jsDate.toISOString().slice(0, 10);
+}
+
+function sanitise(rows) {
+  return rows
+    .filter(r =>
+      r.Job_id && String(r.Job_id).trim() &&
+      r.Gas_Cylinder_Serial && String(r.Gas_Cylinder_Serial).trim() &&
+      r.Technician_EPF && String(r.Technician_EPF).trim() &&
+      parseFloat(r.Gas_Consumption) > 0
+    )
+    .map(r => {
+      let d = String(r.Scanned_Date || '').trim();
+      if (/^\d+(\.\d+)?$/.test(d)) {
+        d = excelDateToJSDate(parseFloat(d));
+      } else if (d.includes('T')) {
+        d = d.split('T')[0];
+      }
+      return {
+        job:    String(r.Job_id).trim(),
+        serial: String(r.Gas_Cylinder_Serial).trim(),
+        epf:    String(r.Technician_EPF).trim(),
+        type:   String(r.Gas_Cylinder_Type || '').trim() || 'Unknown',
+        cons:   parseFloat(r.Gas_Consumption) || 0,
+        date:   d
+      };
+    })
+    .filter(r => r.date && /^\d{4}-\d{2}-\d{2}$/.test(r.date));
+}
+
+// ============================================================
+// DEDUP
+// ============================================================
+function dedup(rows) {
+  const map = {};
+  rows.forEach(r => {
+    const k = r.job + '|||' + r.serial;
+    if (!map[k]) map[k] = { ...r };
+    else         map[k].cons += r.cons;
+  });
+  return Object.values(map);
+}
+
+// ============================================================
+// APPLY FILTERS
+// ============================================================
+function applyFilters() {
+  const year    = document.getElementById('filterYear').value;
+  const month   = document.getElementById('filterMonth').value;
+  const gasType = document.getElementById('filterGasType').value;
+  const epf     = document.getElementById('filterEPF').value.trim().toLowerCase();
+  const serial  = document.getElementById('filterSerial').value.trim().toLowerCase();
+
+  const raw = allData.filter(r => {
+    if (r.date.slice(0,4) !== year)                             return false;
+    if (month !== 'all' && (parseInt(r.date.slice(5,7))-1) !== parseInt(month)) return false;
+    if (gasType !== 'all' && r.type !== gasType)                return false;
+    if (epf    && !r.epf.toLowerCase().includes(epf))          return false;
+    if (serial && !r.serial.toLowerCase().includes(serial))    return false;
+    return true;
+  });
+
+  filtered = dedup(raw);
+
+  pagState.t1.page = pagState.t2.page = pagState.t3.page = pagState.t4.page = 1;
+
+  renderKPIs(year, month);
+  renderCharts(year);
+  renderT1(); renderT2(); renderT3(); renderT4();
+}
+
+function clearFilters() {
+  document.getElementById('filterMonth').value  = 'all';
+  document.getElementById('filterGasType').value= 'all';
+  document.getElementById('filterEPF').value    = '';
+  document.getElementById('filterSerial').value = '';
+  const fy = document.getElementById('filterYear');
+  const cur = String(new Date().getFullYear());
+  if ([...fy.options].some(o => o.value === cur)) fy.value = cur;
+  applyFilters();
+}
+
+// ============================================================
+// KPI CARDS
+// ============================================================
+function renderKPIs(selYear, selMonth) {
+  const now       = new Date();
+  const curYear   = now.getFullYear();
+  const curMonth  = now.getMonth();
+  const prevMonth = curMonth === 0 ? 11 : curMonth - 1;
+  const prevMonthYear = curMonth === 0 ? curYear - 1 : curYear;
+
+  const dayOfWeek = (now.getDay() + 6) % 7;
+  const weekStart = new Date(now); weekStart.setDate(now.getDate() - dayOfWeek); weekStart.setHours(0,0,0,0);
+  const weekEnd   = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6); weekEnd.setHours(23,59,59,999);
+  const wStart = weekStart.toISOString().slice(0,10);
+  const wEnd   = weekEnd.toISOString().slice(0,10);
+
+  const totalCyl = new Set(filtered.map(r => r.serial)).size;
+  const yearStr = String(curYear);
+  const rawCurYear = allData.filter(r => r.date.slice(0,4) === yearStr);
+
+  const epf    = document.getElementById('filterEPF').value.trim().toLowerCase();
+  const serial = document.getElementById('filterSerial').value.trim().toLowerCase();
+  const gtype  = document.getElementById('filterGasType').value;
+
+  function matchFilters(r) {
+    if (gtype !== 'all' && r.type !== gtype) return false;
+    if (epf    && !r.epf.toLowerCase().includes(epf))     return false;
+    if (serial && !r.serial.toLowerCase().includes(serial)) return false;
+    return true;
+  }
+
+  const thisMonthRaw  = rawCurYear.filter(r => parseInt(r.date.slice(5,7))-1 === curMonth && matchFilters(r));
+  const thisMonthDedup = dedup(thisMonthRaw);
+  const gasThisMonth  = thisMonthDedup.reduce((s,r) => s+r.cons, 0);
+  const jobsThisMonth = new Set(thisMonthDedup.map(r => r.job)).size;
+
+  const prevMonthRaw  = allData.filter(r =>
+    r.date.slice(0,4) === String(prevMonthYear) &&
+    parseInt(r.date.slice(5,7))-1 === prevMonth &&
+    matchFilters(r)
+  );
+  const gasPrevMonth  = dedup(prevMonthRaw).reduce((s,r) => s+r.cons, 0);
+
+  const thisWeekDedup = dedup(rawCurYear.filter(r => r.date >= wStart && r.date <= wEnd && matchFilters(r)));
+  const gasThisWeek   = thisWeekDedup.reduce((s,r) => s+r.cons, 0);
+  const gasThisYear   = filtered.reduce((s,r) => s+r.cons, 0);
+
+  document.getElementById('kpiCylinders').textContent   = totalCyl;
+  document.getElementById('kpiJobsMonth').textContent   = jobsThisMonth;
+  document.getElementById('kpiJobsMonthSub').textContent = MONTH_NAMES[curMonth] + ' ' + curYear;
+  document.getElementById('kpiGasWeek').innerHTML       = gasThisWeek.toFixed(1) + '<span>kg</span>';
+  document.getElementById('kpiGasWeekSub').textContent  = 'Week of ' + wStart;
+  document.getElementById('kpiGasMonth').innerHTML      = gasThisMonth.toFixed(1) + '<span>kg</span>';
+  document.getElementById('kpiGasMonthSub').textContent = MONTH_NAMES[curMonth] + ' ' + curYear;
+  document.getElementById('kpiGasPrev').innerHTML       = gasPrevMonth.toFixed(1) + '<span>kg</span>';
+  document.getElementById('kpiGasPrevSub').textContent  = MONTH_NAMES[prevMonth] + ' total';
+  document.getElementById('kpiGasYear').innerHTML       = gasThisYear.toFixed(1) + '<span>kg</span>';
+  document.getElementById('kpiGasYearSub').textContent  = selYear + ' (filtered)';
+}
+
+// ============================================================
+// CHARTS
+// ============================================================
+function renderCharts(year) {
+  const monthly = Array(12).fill(0);
+  filtered.forEach(r => {
+    if (r.date.slice(0,4) !== year) return;
+    const m = parseInt(r.date.slice(5,7)) - 1;
+    if (m >= 0 && m < 12) monthly[m] += r.cons;
+  });
+
+  const typeMap = {};
+  filtered.forEach(r => {
+    const t = r.type || 'Unknown';
+    typeMap[t] = (typeMap[t]||0) + r.cons;
+  });
+
+  renderLineChart(monthly, year);
+  renderPieChart(typeMap, year);
+}
+
+// ── Line chart ──
+function renderLineChart(monthly, year) {
+  document.getElementById('lineChartSub').textContent = year + ' — total kg per month';
+  const ctx = document.getElementById('lineChart').getContext('2d');
+  if (lineChartObj) lineChartObj.destroy();
+
+  const data = monthly.map(v => parseFloat(v.toFixed(1)));
+
+  const topLabelPlugin = {
+    id: 'topLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx: c, data: d } = chart;
+      const ds = chart.getDatasetMeta(0);
+      d.datasets[0].data.forEach((val, i) => {
+        if (val === 0) return;
+        const pt = ds.data[i];
+        c.save();
+        c.font = 'bold 11px DM Sans, sans-serif';
+        c.fillStyle = '#5b21b6';
+        c.textAlign = 'center';
+        c.textBaseline = 'bottom';
+        c.fillText(val.toFixed(1), pt.x, pt.y - 6);
+        c.restore();
+      });
+    }
+  };
+
+  lineChartObj = new Chart(ctx, {
+    type: 'line',
+    plugins: [topLabelPlugin],
+    data: {
+      labels: MONTHS,
+      datasets: [{
+        label: 'Gas (kg)',
+        data,
+        borderColor: '#7c3aed',
+        backgroundColor: 'rgba(124,58,237,.08)',
+        pointBackgroundColor: '#7c3aed',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        tension: 0.4,
+        fill: true,
+        borderWidth: 2.5,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display:false },
+        tooltip: { callbacks: { label: c => ` ${c.parsed.y.toFixed(1)} kg` } }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          suggestedMax: Math.max(...data) * 1.3 || 10,
+          grid: { color:'rgba(167,139,250,.12)' },
+          ticks: {
+            font:{ family:'DM Mono',size:10 },
+            callback: v => v.toFixed(0) + ' kg'
+          }
+        },
+        x: {
+          grid:{ display:false },
+          ticks:{ font:{ family:'DM Sans',size:11,weight:'600' } }
+        }
+      },
+      layout: { padding:{ top:22 } }
+    }
+  });
+}
+
+// ── Pie chart — no arrow labels; total in centre; right-side box legend ──
+function renderPieChart(typeMap, year) {
+  document.getElementById('pieChartSub').textContent = year + ' — consumption by type';
+  const ctx = document.getElementById('pieChart').getContext('2d');
+  if (pieChartObj) pieChartObj.destroy();
+
+  const labels = Object.keys(typeMap);
+  const values = labels.map(l => parseFloat(typeMap[l].toFixed(1)));
+  const total  = values.reduce((a,b) => a+b, 0);
+
+  // ── Plugin 1: Centre total — fires ONCE after full render (no lag) ──
+  const centerTotalPlugin = {
+    id: 'centerTotal',
+    afterRender(chart) {
+      if (total === 0) return;
+      const { ctx: c, chartArea: { left, right, top, bottom } } = chart;
+      const cx = (left + right) / 2;
+      const cy = (top  + bottom) / 2;
+      c.save();
+      c.textAlign    = 'center';
+      c.textBaseline = 'middle';
+      c.font         = 'bold 20px DM Sans, sans-serif';
+      c.fillStyle    = '#3b0764';
+      c.fillText(total.toFixed(1), cx, cy - 8);
+      c.font         = '11px DM Sans, sans-serif';
+      c.fillStyle    = '#8b85a8';
+      c.fillText('kg total', cx, cy + 12);
+      c.restore();
+    }
+  };
+
+  // ── Plugin 2: Linear connector labels — fires ONCE after full render ──
+  // Each label: short radial line → horizontal tick → text, all in a straight layout
+  const linearLabelPlugin = {
+    id: 'linearLabels',
+    afterRender(chart) {
+      if (total === 0) return;
+      const { ctx: c } = chart;
+      const meta = chart.getDatasetMeta(0);
+
+      meta.data.forEach((arc, i) => {
+        const val = values[i];
+        if (val === 0) return;
+        const color = PIE_COLORS[i % PIE_COLORS.length];
+
+        const cx       = arc.x;
+        const cy       = arc.y;
+        const midAngle = arc.startAngle + (arc.endAngle - arc.startAngle) / 2;
+        const outerR   = arc.outerRadius;
+
+        // Point on slice edge
+        const ex = cx + Math.cos(midAngle) * (outerR + 4);
+        const ey = cy + Math.sin(midAngle) * (outerR + 4);
+
+        // Elbow point (straight out from centre)
+        const elbowR = outerR + 20;
+        const elx    = cx + Math.cos(midAngle) * elbowR;
+        const ely    = cy + Math.sin(midAngle) * elbowR;
+
+        // Horizontal tick endpoint (always goes left or right)
+        const goRight  = elx >= cx;
+        const tickLen  = 18;
+        const tx       = elx + (goRight ? tickLen : -tickLen);
+        const ty       = ely;
+
+        // Label text
+        const label    = val.toFixed(1) + ' kg';
+        const textX    = tx + (goRight ? 4 : -4);
+
+        c.save();
+
+        // Radial line: edge → elbow
+        c.strokeStyle = color;
+        c.lineWidth   = 1.4;
+        c.beginPath();
+        c.moveTo(ex, ey);
+        c.lineTo(elx, ely);
+        c.stroke();
+
+        // Horizontal tick: elbow → tick end
+        c.beginPath();
+        c.moveTo(elx, ely);
+        c.lineTo(tx, ty);
+        c.stroke();
+
+        // Dot at elbow
+        c.beginPath();
+        c.arc(elx, ely, 2.5, 0, Math.PI * 2);
+        c.fillStyle = color;
+        c.fill();
+
+        // Text label
+        c.font         = 'bold 11px DM Sans, sans-serif';
+        c.fillStyle    = color;
+        c.textAlign    = goRight ? 'left' : 'right';
+        c.textBaseline = 'middle';
+        c.fillText(label, textX, ty);
+
+        c.restore();
+      });
+    }
+  };
+
+  // ── Legend box: colour swatch + gas type name + percentage only ──
+  const legendBox = document.getElementById('pieLegendBox');
+  if (legendBox) {
+    if (labels.length === 0) {
+      legendBox.innerHTML = `<div style="font-size:11px;color:var(--grey-500);font-family:'DM Sans';">No data</div>`;
+    } else {
+      legendBox.innerHTML = labels.map((lbl, i) => {
+        const pct   = total > 0 ? ((values[i] / total) * 100).toFixed(1) : '0.0';
+        const color = PIE_COLORS[i % PIE_COLORS.length];
+        return `
+          <div style="display:flex;align-items:center;gap:5px;white-space:nowrap;">
+            <div style="width:9px;height:9px;border-radius:2px;
+                        background:${color};flex-shrink:0;"></div>
+            <span style="font-size:11px;font-weight:700;color:#3b0764;
+                         font-family:'DM Sans';">${lbl}</span>
+            <span style="font-size:11px;color:#8b85a8;font-family:'DM Sans';">${pct}%</span>
+          </div>`;
+      }).join('');
+    }
+  }
+
+  pieChartObj = new Chart(ctx, {
+    type: 'doughnut',
+    plugins: [centerTotalPlugin, linearLabelPlugin],
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: PIE_COLORS.slice(0, labels.length),
+        borderColor: '#fff',
+        borderWidth: 3,
+        hoverOffset: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      cutout: '58%',
+      layout: { padding: 36 },
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: c => {
+              const pct = total > 0 ? ((c.parsed / total) * 100).toFixed(1) : 0;
+              return ` ${c.parsed.toFixed(1)} kg (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// ============================================================
+// PAGINATION HELPER
+// ============================================================
+function buildPagination(contId, infoId, total, perPage, curPage, setPage) {
+  const pages = Math.ceil(total/perPage) || 1;
+  const from  = Math.min((curPage-1)*perPage+1, total);
+  const to    = Math.min(curPage*perPage, total);
+  document.getElementById(infoId).textContent = total === 0 ? '0 records' : `${from}–${to} of ${total}`;
+
+  const cont = document.getElementById(contId);
+  cont.innerHTML = '';
+  const prev = mkBtn('‹', curPage===1, () => setPage(curPage-1));
+  cont.appendChild(prev);
+  const start = Math.max(1, curPage-2);
+  const end   = Math.min(pages, start+4);
+  for (let p=start; p<=end; p++) {
+    const b = mkBtn(p, false, () => setPage(p), p===curPage);
+    cont.appendChild(b);
+  }
+  const next = mkBtn('›', curPage===pages, () => setPage(curPage+1));
+  cont.appendChild(next);
+}
+
+function mkBtn(label, disabled, cb, active=false) {
+  const b = document.createElement('button');
+  b.className = 'pag-btn' + (active?' active':'');
+  b.textContent = label;
+  b.disabled = disabled;
+  if (!disabled) b.onclick = cb;
+  return b;
+}
+
+function totalCons(rows){ return rows.reduce((s,r)=>s+r.cons,0); }
+
+// ============================================================
+// TABLE 1 — Job Consumption
+// ============================================================
+function renderT1() {
+  const s = document.getElementById('searchT1').value.toLowerCase();
+  const map = {};
+  filtered.forEach(r => {
+    if (s && !r.job.toLowerCase().includes(s)) return;
+    map[r.job] = (map[r.job]||0) + r.cons;
+  });
+  const rows = Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  const { page, perPage } = pagState.t1;
+  const slice = rows.slice((page-1)*perPage, page*perPage);
+  document.getElementById('bodyT1').innerHTML = slice.length
+    ? slice.map(([job,c])=>`<tr><td class="job-cell">${job}</td><td class="r num-cell">${c.toFixed(1)}</td></tr>`).join('')
+    : noData(2);
+  buildPagination('pagT1','infoT1', rows.length, perPage, page, p=>{pagState.t1.page=p;renderT1();});
+}
+
+// ============================================================
+// TABLE 2 — Cylinder Consumption
+// ============================================================
+function renderT2() {
+  const s = document.getElementById('searchT2').value.toLowerCase();
+  const map = {};
+  filtered.forEach(r => {
+    if (s && !r.serial.toLowerCase().includes(s)) return;
+    map[r.serial] = (map[r.serial]||0) + r.cons;
+  });
+  const rows = Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  const { page, perPage } = pagState.t2;
+  const slice = rows.slice((page-1)*perPage, page*perPage);
+  document.getElementById('bodyT2').innerHTML = slice.length
+    ? slice.map(([serial,c])=>`<tr><td style="font-family:'DM Mono';font-size:12px;">${serial}</td><td class="r num-cell">${c.toFixed(1)}</td></tr>`).join('')
+    : noData(2);
+  buildPagination('pagT2','infoT2', rows.length, perPage, page, p=>{pagState.t2.page=p;renderT2();});
+}
+
+// ============================================================
+// TABLE 3 — Drilldown: Job → Cylinders
+// ▼ CHANGE: now filters by BOTH job search AND serial search
+// ============================================================
+function renderT3() {
+  const s  = document.getElementById('searchT3').value.toLowerCase();
+  const ss = document.getElementById('searchT3Serial').value.toLowerCase();
+
+  // Group filtered by job, applying both search filters
+  const byJob = {};
+  filtered.forEach(r => {
+    if (s  && !r.job.toLowerCase().includes(s))       return;
+    if (ss && !r.serial.toLowerCase().includes(ss))   return;
+    if (!byJob[r.job]) byJob[r.job] = [];
+    byJob[r.job].push(r);
+  });
+
+  const jobEntries = Object.entries(byJob)
+    .sort((a,b) => totalCons(b[1]) - totalCons(a[1]));
+
+  const { page, perPage } = pagState.t3;
+  const slice = jobEntries.slice((page-1)*perPage, page*perPage);
+
+  const body = document.getElementById('bodyT3');
+  if (!slice.length) { body.innerHTML = noData(2); }
+  else {
+    body.innerHTML = slice.map(([job, rows]) => {
+      const jTot = totalCons(rows).toFixed(1);
+      const hdr = `<tr class="grp-hdr">
+        <td style="color:var(--purple-dark);font-weight:700;font-family:'DM Sans';">💼 ${job}</td>
+        <td class="r" style="color:var(--purple-dark);font-weight:700;font-family:'DM Sans';">${jTot}</td>
+      </tr>`;
+      const subs = rows.map(r =>
+        `<tr class="sub-row">
+          <td style="padding-left:22px;color:#111;font-weight:400;font-family:'DM Mono';font-size:12px;">↳ ${r.serial}</td>
+          <td class="r" style="color:#111;font-weight:400;">${r.cons.toFixed(1)}</td>
+        </tr>`
+      ).join('');
+      return hdr + subs;
+    }).join('');
+  }
+
+  buildPagination('pagT3','infoT3', jobEntries.length, perPage, page, p=>{pagState.t3.page=p;renderT3();});
+}
+
+// ============================================================
+// TABLE 4 — Technician Consumption
+// ============================================================
+function renderT4() {
+  const s = document.getElementById('searchT4').value.toLowerCase();
+  const map = {};
+  filtered.forEach(r => {
+    if (s && !r.epf.toLowerCase().includes(s)) return;
+    map[r.epf] = (map[r.epf]||0) + r.cons;
+  });
+  const rows = Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  const { page, perPage } = pagState.t4;
+  const slice = rows.slice((page-1)*perPage, page*perPage);
+  document.getElementById('bodyT4').innerHTML = slice.length
+    ? slice.map(([epf,c])=>`<tr><td class="job-cell">${epf}</td><td class="r num-cell">${c.toFixed(1)}</td></tr>`).join('')
+    : noData(2);
+  buildPagination('pagT4','infoT4', rows.length, perPage, page, p=>{pagState.t4.page=p;renderT4();});
+}
+
+function noData(cols) {
+  return `<tr><td colspan="${cols}" style="text-align:center;color:var(--grey-500);padding:18px;font-family:'DM Sans';">No data for selected filters</td></tr>`;
+}
+
+// ============================================================
+// LOADING / ERROR UI
+// ============================================================
+function showLoading(show) {
+  document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+  document.getElementById('errorOverlay').style.display   = 'none';
+}
+function showError(msg) {
+  document.getElementById('loadingOverlay').style.display = 'none';
+  document.getElementById('errorOverlay').style.display   = 'flex';
+  document.getElementById('errorMsg').textContent = msg;
+  document.getElementById('mainContent').style.display    = 'none';
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+window.addEventListener('load', loadData);
+</script>
+</body>
+</html>
