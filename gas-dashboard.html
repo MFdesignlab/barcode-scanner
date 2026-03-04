@@ -51,6 +51,9 @@
     box-shadow: 0 4px 24px rgba(59,7,100,.4);
     gap: 10px;
     flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 100;
   }
   .top-bar-left { display:flex; align-items:center; gap:12px; }
   .top-bar-logo {
@@ -94,6 +97,41 @@
   }
   .scan-btn:hover { transform:translateY(-1px); box-shadow:0 4px 16px rgba(37,99,235,.45); }
 
+  .cylinder-btn {
+    background: linear-gradient(135deg, #059669, #0d9488);
+    border: 1px solid rgba(255,255,255,.3);
+    color: #fff;
+    padding: 7px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'DM Sans',sans-serif;
+    transition: all .2s;
+    display:flex; align-items:center; gap:5px;
+    text-decoration:none;
+    box-shadow: 0 2px 10px rgba(5,150,105,.3);
+    white-space:nowrap;
+  }
+  .cylinder-btn:hover { transform:translateY(-1px); box-shadow:0 4px 16px rgba(5,150,105,.45); }
+
+  .filters-btn {
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.25);
+    color: #fff;
+    padding: 7px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'DM Sans',sans-serif;
+    transition: all .2s;
+    display:flex; align-items:center; gap:5px;
+    white-space:nowrap;
+  }
+  .filters-btn:hover { background:rgba(255,255,255,.25); }
+  .filters-btn.active { background: rgba(167,139,250,.3); border-color: var(--purple-mid); }
+
   .refresh-btn {
     background: rgba(255,255,255,.12);
     border: 1px solid rgba(255,255,255,.25);
@@ -112,30 +150,71 @@
   .refresh-btn.spinning .spin-icon { display:inline-block; animation:spin .7s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
 
-  /* ── MAIN ── */
-  .main { max-width:1400px; margin:0 auto; padding:18px 16px 40px; }
+  /* ── FLOATING FILTER PANEL ── */
+  .filter-panel-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(59,7,100,.2);
+    z-index: 200;
+    display: none;
+  }
+  .filter-panel-overlay.visible { display: block; }
 
-  /* ── FILTER BAR ── */
-  .filter-bar {
+  .filter-panel {
+    position: fixed;
+    top: 0;
+    right: -340px;
+    width: 320px;
+    height: 100vh;
     background: var(--white);
-    border-radius: var(--radius);
-    padding: 12px 16px;
+    box-shadow: -8px 0 40px rgba(91,33,182,.18);
+    z-index: 300;
+    display: flex;
+    flex-direction: column;
+    transition: right .3s cubic-bezier(.4,0,.2,1);
+    border-left: 2px solid var(--purple-soft);
+  }
+  .filter-panel.open { right: 0; }
+
+  .filter-panel-header {
+    background: linear-gradient(135deg, var(--purple-deep) 0%, var(--purple-dark) 100%);
+    padding: 14px 16px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    box-shadow: var(--shadow-sm);
-    margin-bottom: 18px;
-    border: 1px solid var(--grey-200);
+    justify-content: space-between;
+    flex-shrink: 0;
   }
-  .filter-label { font-size:10px; font-weight:700; color:var(--grey-500); text-transform:uppercase; letter-spacing:.8px; white-space:nowrap; flex-shrink:0; }
-  .filter-group { display:flex; align-items:center; gap:5px; flex-shrink:0; }
-  .filter-group-label { font-size:10px; font-weight:600; color:var(--grey-500); white-space:nowrap; }
-  .filter-select, .filter-input {
+  .filter-panel-header h3 { color: #fff; font-size: 14px; font-weight: 700; }
+  .filter-panel-close {
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.2);
+    color: #fff;
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: 'DM Sans',sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .2s;
+  }
+  .filter-panel-close:hover { background: rgba(255,255,255,.3); }
+
+  .filter-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .fp-group { display: flex; flex-direction: column; gap: 5px; }
+  .fp-label { font-size: 10px; font-weight: 700; color: var(--grey-500); text-transform: uppercase; letter-spacing: .8px; }
+  .fp-select, .fp-input {
     background: var(--purple-pale);
     border: 1px solid var(--purple-mid);
     border-radius: 7px;
-    padding: 5px 8px;
+    padding: 7px 10px;
     font-size: 12px;
     font-family: 'DM Sans',sans-serif;
     color: var(--purple-dark);
@@ -143,33 +222,40 @@
     cursor: pointer;
     outline: none;
     transition: border-color .2s;
-    height: 30px;
+    width: 100%;
+    height: 34px;
   }
-  .filter-input::placeholder {
-  color: #918e8e;
-  font-weight: 400;
-  }
-  .filter-select:focus, .filter-input:focus { border-color:var(--purple-main);}
-  .filter-input[type="date"] { width:130px; }
-  .filter-divider { width:1px; height:22px; background:var(--grey-200); flex-shrink:0; }
+  .fp-input::placeholder { color: #918e8e; font-weight: 400; }
+  .fp-select:focus, .fp-input:focus { border-color: var(--purple-main); }
+  .fp-input[type="date"] { width: 100%; }
 
-  .clear-btn {
-    margin-left:auto;
+  .filter-panel-footer {
+    padding: 14px 16px;
+    border-top: 1px solid var(--grey-200);
+    flex-shrink: 0;
+  }
+  .fp-clear-btn {
+    width: 100%;
     background: linear-gradient(135deg, #f59e0b, #ea580c);
     color: #fff;
     border: none;
-    border-radius: 20px;
-    padding: 5px 14px;
-    font-size: 12px;
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 13px;
     font-weight: 700;
     cursor: pointer;
     font-family: 'DM Sans',sans-serif;
     transition: all .2s;
-    white-space:nowrap;
     box-shadow: 0 2px 8px rgba(234,88,12,.3);
-    flex-shrink:0;
   }
-  .clear-btn:hover { background: linear-gradient(135deg, #d97706, #c2410c); transform:translateY(-1px); box-shadow:0 4px 12px rgba(234,88,12,.4); }
+  .fp-clear-btn:hover { background: linear-gradient(135deg, #d97706, #c2410c); transform:translateY(-1px); }
+
+  /* ── PAGE SYSTEM ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── MAIN ── */
+  .main { max-width:1400px; margin:0 auto; padding:18px 16px 40px; }
 
   /* ── SECTION TITLE ── */
   .section-title {
@@ -277,7 +363,6 @@
     max-height: 220px !important;
   }
 
-  /* Legend box — bottom of pie card */
   #pieLegendBox {
     display: flex;
     flex-direction: row;
@@ -310,7 +395,6 @@
     display: flex; flex-direction:column; gap:20px;
   }
 
-  /* Right table frame — fills height with scrollable body */
   .table-frame-right {
     background: var(--white);
     border-radius: var(--radius);
@@ -319,7 +403,7 @@
     border: 1px solid var(--grey-200);
     display: flex;
     flex-direction: column;
-    height: 100%;     /* fill same as left */
+    height: 100%;
     min-height: 100%;
   }
 
@@ -342,7 +426,6 @@
   .table-search:focus { border-color:var(--purple-main); }
   .table-search[type="date"] { width:130px; }
 
-  /* Drilldown filter row */
   .drilldown-filters {
     display: flex;
     align-items: center;
@@ -369,7 +452,6 @@
   }
   .drilldown-clear-btn:hover { background: linear-gradient(135deg, #d97706, #c2410c); }
 
-  /* Right frame table scrollable body */
   .right-table-wrap {
     flex: 1;
     overflow-y: auto;
@@ -377,7 +459,7 @@
   }
   .right-table-wrap table {
     width: 100%;
-    border-collapse: collapse; 
+    border-collapse: collapse;
   }
 
   table { width:100%; border-collapse:collapse; }
@@ -402,7 +484,6 @@
   td.job-cell   { font-family:'DM Sans',sans-serif; font-weight:600; color:var(--grey-900); }
   td.num-cell   { font-weight:600; color:var(--purple-dark); }
 
-  /* Drilldown group header row */
   .grp-hdr td {
     background: var(--purple-soft);
     font-family:'DM Sans',sans-serif !important;
@@ -412,7 +493,6 @@
     padding:7px 10px;
     border-top:1px solid var(--purple-mid);
   }
-  /* Drilldown sub-rows */
   .sub-row td {
     color: #111 !important;
     font-weight:400 !important;
@@ -421,7 +501,6 @@
 
   .table-separator { height:1px; background:var(--grey-200); }
 
-  /* Pagination */
   .pagination { display:flex; align-items:center; justify-content:space-between; margin-top:8px; flex-wrap:wrap; gap:6px; }
   .pag-info { font-size:10px; color:var(--grey-500); }
   .pag-btns { display:flex; gap:2px; }
@@ -436,6 +515,103 @@
   .pag-btn:hover { background:var(--purple-soft); border-color:var(--purple-mid); color:var(--purple-dark); }
   .pag-btn.active { background:var(--purple-main); border-color:var(--purple-main); color:#fff; }
   .pag-btn:disabled { opacity:.3; cursor:not-allowed; }
+
+  /* ── CAPACITY PAGE ── */
+  .capacity-page-wrap {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 28px 16px 40px;
+  }
+  .capacity-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--grey-200);
+  }
+  .capacity-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--purple-soft);
+  }
+  .capacity-card-icon {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, #059669, #0d9488);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .capacity-card-header h2 { font-size: 18px; font-weight: 700; color: var(--grey-900); }
+  .capacity-card-header p  { font-size: 12px; color: var(--grey-500); margin-top: 2px; }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .form-label {
+    font-size: 11px; font-weight: 700;
+    color: var(--grey-700); text-transform: uppercase; letter-spacing: .6px;
+  }
+  .form-input {
+    background: var(--purple-pale);
+    border: 1.5px solid var(--grey-200);
+    border-radius: 9px;
+    padding: 9px 12px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--grey-900);
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    width: 100%;
+    height: 40px;
+  }
+  .form-input:focus {
+    border-color: var(--purple-main);
+    box-shadow: 0 0 0 3px rgba(124,58,237,.1);
+  }
+  .form-input::placeholder { color: #b0accc; }
+
+  .form-submit-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #059669, #0d9488);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 11px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 4px 16px rgba(5,150,105,.3);
+    margin-top: 8px;
+  }
+  .form-submit-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(5,150,105,.4); }
+  .form-submit-btn:disabled { opacity:.6; cursor:not-allowed; transform:none; }
+
+  .form-status {
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    display: none;
+    align-items: center;
+    gap: 8px;
+  }
+  .form-status.success {
+    background: #d1fae5;
+    border: 1px solid #6ee7b7;
+    color: #065f46;
+    display: flex;
+  }
+  .form-status.error {
+    background: #fee2e2;
+    border: 1px solid #fca5a5;
+    color: #991b1b;
+    display: flex;
+  }
 
   /* ── OVERLAYS ── */
   .overlay {
@@ -472,14 +648,10 @@
     .top-bar { padding:10px 14px; }
     .top-bar-title h1 { font-size:15px; }
     .top-bar-right { gap:6px; }
-    .scan-btn, .refresh-btn { padding:6px 10px; font-size:11px; }
+    .scan-btn, .refresh-btn, .cylinder-btn, .filters-btn { padding:6px 10px; font-size:11px; }
     .last-updated-box { display:none; }
 
     .main { padding:12px 10px 32px; }
-
-    .filter-bar { gap:8px; padding:10px 12px; }
-    .filter-select, .filter-input { font-size:11px; padding:4px 6px; height:28px; }
-    .filter-input[type="date"] { width:110px; }
 
     .kpi-grid { gap:8px; }
     .kpi-card { padding:12px 10px; }
@@ -493,14 +665,15 @@
     .table-frame-right { min-height:400px; }
 
     .drilldown-filters { flex-wrap:wrap; }
+
+    .filter-panel { width: 290px; }
+    .capacity-page-wrap { padding: 16px 10px 32px; }
+    .capacity-card { padding: 20px 16px; }
   }
 
   @media(max-width:480px) {
     .top-bar-left { gap:8px; }
     .top-bar-logo { width:32px; height:32px; font-size:16px; }
-    .filter-bar { padding:8px 10px; }
-    .filter-divider { display:none; }
-    .clear-btn { margin-left:0; width:100%; text-align:center; justify-content:center; }
     .kpi-grid { grid-template-columns:1fr 1fr; }
   }
 </style>
@@ -517,6 +690,15 @@
     </div>
   </div>
   <div class="top-bar-right">
+    <button class="cylinder-btn" id="cylinderNavBtn" onclick="handleCylinderNavBtn()">
+      🛢️ Cylinder Data
+    </button>
+    <a class="scan-btn" id="scannerLink" href="javascript:void(0)">
+      📷 Open Scanner
+    </a>
+    <button class="filters-btn" id="filtersPanelBtn" onclick="toggleFilterPanel()">
+      ⚙️ Filters
+    </button>
     <div class="last-updated-box">
       <span class="last-updated-label">Last Updated</span>
       <span class="last-updated-val" id="lastUpdated">–</span>
@@ -524,9 +706,71 @@
     <button class="refresh-btn" onclick="loadData()" id="refreshBtn">
       <span class="spin-icon">↻</span> Refresh
     </button>
-    <a class="scan-btn" href="javascript:void(0)">
-      📷 Open Scanner
-    </a>
+  </div>
+</div>
+
+<!-- FILTER PANEL OVERLAY -->
+<div class="filter-panel-overlay" id="filterPanelOverlay" onclick="closeFilterPanel()"></div>
+
+<!-- FLOATING FILTER PANEL -->
+<div class="filter-panel" id="filterPanel">
+  <div class="filter-panel-header">
+    <h3>⚙️ Filters</h3>
+    <button class="filter-panel-close" onclick="closeFilterPanel()">✕</button>
+  </div>
+  <div class="filter-panel-body">
+    <div class="fp-group">
+      <div class="fp-label">Year</div>
+      <select class="fp-select" id="filterYear" onchange="applyFilters()">
+        <option value="2025">2025</option>
+        <option value="2026" selected>2026</option>
+        <option value="2027">2027</option>
+        <option value="2028">2028</option>
+        <option value="2029">2029</option>
+        <option value="2030">2030</option>
+      </select>
+    </div>
+    <div class="fp-group">
+      <div class="fp-label">Month</div>
+      <select class="fp-select" id="filterMonth" onchange="applyFilters()">
+        <option value="all">All</option>
+        <option value="0">Jan</option><option value="1">Feb</option>
+        <option value="2">Mar</option><option value="3">Apr</option>
+        <option value="4">May</option><option value="5">Jun</option>
+        <option value="6">Jul</option><option value="7">Aug</option>
+        <option value="8">Sep</option><option value="9">Oct</option>
+        <option value="10">Nov</option><option value="11">Dec</option>
+      </select>
+    </div>
+    <div class="fp-group">
+      <div class="fp-label">From Date</div>
+      <input type="date" class="fp-input" id="filterDateFrom" onchange="applyFilters()"/>
+    </div>
+    <div class="fp-group">
+      <div class="fp-label">To Date</div>
+      <input type="date" class="fp-input" id="filterDateTo" onchange="applyFilters()"/>
+    </div>
+    <div class="fp-group">
+      <div class="fp-label">Gas Type</div>
+      <select class="fp-select" id="filterGasType" onchange="applyFilters()">
+        <option value="all">All</option>
+        <option value="R22">R22</option>
+        <option value="R32">R32</option>
+        <option value="R410A">R410A</option>
+        <option value="R134A">R134A</option>
+      </select>
+    </div>
+    <div class="fp-group">
+      <div class="fp-label">EPF</div>
+      <input type="text" class="fp-input" id="filterEPF" placeholder="e.g. 5775" oninput="applyFilters()"/>
+    </div>
+    <div class="fp-group">
+      <div class="fp-label">Serial</div>
+      <input type="text" class="fp-input" id="filterSerial" placeholder="e.g. GAS32KG" oninput="applyFilters()"/>
+    </div>
+  </div>
+  <div class="filter-panel-footer">
+    <button class="fp-clear-btn" onclick="clearFilters()">✕ Clear All Filters</button>
   </div>
 </div>
 
@@ -545,137 +789,52 @@
   </div>
 </div>
 
-<!-- MAIN CONTENT -->
+<!-- PAGE: DASHBOARD -->
+<div class="page active" id="page-dashboard">
 <div class="main" id="mainContent" style="display:none;">
 
-  <!-- FILTER BAR — single row, all inline -->
-  <div class="filter-bar">
-    <span class="filter-label">Filters</span>
-
-    <div class="filter-group">
-      <span class="filter-group-label">Year</span>
-      <select class="filter-select" id="filterYear" onchange="applyFilters()">
-        <option value="2025">2025</option>
-        <option value="2026" selected>2026</option>
-        <option value="2027">2027</option>
-        <option value="2028">2028</option>
-        <option value="2029">2029</option>
-        <option value="2030">2030</option>
-      </select>
-    </div>
-
-    <div class="filter-divider"></div>
-
-    <div class="filter-group">
-      <span class="filter-group-label">Month</span>
-      <select class="filter-select" id="filterMonth" onchange="applyFilters()">
-        <option value="all">All</option>
-        <option value="0">Jan</option><option value="1">Feb</option>
-        <option value="2">Mar</option><option value="3">Apr</option>
-        <option value="4">May</option><option value="5">Jun</option>
-        <option value="6">Jul</option><option value="7">Aug</option>
-        <option value="8">Sep</option><option value="9">Oct</option>
-        <option value="10">Nov</option><option value="11">Dec</option>
-      </select>
-    </div>
-
-    <div class="filter-divider"></div>
-
-    <div class="filter-group">
-      <span class="filter-group-label">From</span>
-      <input type="date" class="filter-input" id="filterDateFrom" onchange="applyFilters()"/>
-    </div>
-
-    <div class="filter-divider"></div>
-
-    <div class="filter-group">
-      <span class="filter-group-label">To</span>
-      <input type="date" class="filter-input" id="filterDateTo" onchange="applyFilters()"/>
-    </div>
-
-    <div class="filter-divider"></div>
-
-    <div class="filter-group">
-      <span class="filter-group-label">Gas Type</span>
-      <select class="filter-select" id="filterGasType" onchange="applyFilters()">
-        <option value="all">All</option>
-        <option value="R22">R22</option>
-        <option value="R32">R32</option>
-        <option value="R410A">R410A</option>
-        <option value="R134A">R134A</option>
-      </select>
-    </div>
-
-    <div class="filter-divider"></div>
-
-    <div class="filter-group">
-      <span class="filter-group-label">EPF</span>
-      <input type="text" class="filter-input" id="filterEPF" placeholder="5775" oninput="applyFilters()" style="width:80px;"/>
-    </div>
-
-    <div class="filter-divider"></div>
-
-    <div class="filter-group">
-      <span class="filter-group-label">Serial</span>
-      <input type="text" class="filter-input" id="filterSerial" placeholder="GAS32KG" oninput="applyFilters()" style="width:100px;"/>
-    </div>
-
-    <button class="clear-btn" onclick="clearFilters()">✕ Clear</button>
-  </div>
-
-  <!-- KPI CARDS -->
   <div class="section-title">Key Performance Indicators</div>
   <div class="kpi-grid">
-
     <div class="kpi-card">
       <div class="kpi-icon">🛢️</div>
       <div class="kpi-label">Total Cylinders</div>
       <div class="kpi-value" id="kpiCylinders">—</div>
       <div class="kpi-sub">Distinct serials</div>
     </div>
-
     <div class="kpi-card b">
       <div class="kpi-icon">💼</div>
       <div class="kpi-label">Jobs This Month</div>
       <div class="kpi-value" id="kpiJobsMonth">—</div>
       <div class="kpi-sub" id="kpiJobsMonthSub">Distinct job IDs</div>
     </div>
-
     <div class="kpi-card w">
       <div class="kpi-icon">📆</div>
       <div class="kpi-label">Gas This Week</div>
       <div class="kpi-value" id="kpiGasWeek">—<span>kg</span></div>
       <div class="kpi-sub" id="kpiGasWeekSub">Current week</div>
     </div>
-
     <div class="kpi-card g">
       <div class="kpi-icon">⚡</div>
       <div class="kpi-label">Gas This Month</div>
       <div class="kpi-value" id="kpiGasMonth">—<span>kg</span></div>
       <div class="kpi-sub" id="kpiGasMonthSub">Current month</div>
     </div>
-
     <div class="kpi-card a">
       <div class="kpi-icon">📅</div>
       <div class="kpi-label">Gas Prev Month</div>
       <div class="kpi-value" id="kpiGasPrev">—<span>kg</span></div>
       <div class="kpi-sub" id="kpiGasPrevSub">Previous month</div>
     </div>
-
     <div class="kpi-card t">
       <div class="kpi-icon">📊</div>
       <div class="kpi-label">Gas This Year</div>
       <div class="kpi-value" id="kpiGasYear">—<span>kg</span></div>
       <div class="kpi-sub" id="kpiGasYearSub">Current year total</div>
     </div>
-
   </div>
 
-  <!-- CHARTS -->
   <div class="section-title">Analytics</div>
   <div class="charts-row">
-
-    <!-- Line Chart -->
     <div class="chart-card">
       <div class="chart-header">
         <div>
@@ -685,8 +844,6 @@
       </div>
       <canvas id="lineChart" height="100"></canvas>
     </div>
-
-    <!-- Pie Chart — compact, legend at bottom -->
     <div class="pie-chart-card">
       <div class="chart-header">
         <div>
@@ -697,13 +854,10 @@
       <div class="pie-canvas-wrap">
         <canvas id="pieChart"></canvas>
       </div>
-      <!-- Legend at bottom -->
       <div id="pieLegendBox"></div>
     </div>
-
   </div>
 
-  <!-- TABLES -->
   <div class="section-title">Summary Tables</div>
   <div class="tables-outer">
 
@@ -728,16 +882,27 @@
 
       <div class="table-separator"></div>
 
-      <!-- T2: Cylinder Consumption -->
+      <!-- T2: Cylinder Consumption — sourced from cylinder capacity excel table -->
       <div class="table-block">
         <div class="table-block-header">
           <div class="table-block-title">🛢️ Cylinder Consumption</div>
-          <input class="table-search" id="searchT2" placeholder="Search serial…" oninput="renderT2()"/>
+          <input class="table-search" id="searchT2" placeholder="Search barcode…" oninput="renderT2()"/>
         </div>
-        <table>
-          <thead><tr><th>Cylinder Serial</th><th class="r">Gas (kg)</th></tr></thead>
-          <tbody id="bodyT2"></tbody>
-        </table>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Allocated Date</th>
+                <th>Cylinder Barcode</th>
+                <th class="r">Alloc. Cap. (KG)</th>
+                <th class="r">Consumption (KG)</th>
+                <th class="r">Balance (KG)</th>
+                <th class="r">Days Used</th>
+              </tr>
+            </thead>
+            <tbody id="bodyT2"></tbody>
+          </table>
+        </div>
         <div class="pagination">
           <span class="pag-info" id="infoT2"></span>
           <div class="pag-btns" id="pagT2"></div>
@@ -746,14 +911,17 @@
 
       <div class="table-separator"></div>
 
-      <!-- T4: Technician Consumption -->
+      <!-- T4: Technician Consumption — drilldown EPF → Jobs, dual search -->
       <div class="table-block">
         <div class="table-block-header">
           <div class="table-block-title">👷 Technician Consumption</div>
-          <input class="table-search" id="searchT4" placeholder="Search EPF…" oninput="renderT4()"/>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;">
+            <input class="table-search" id="searchT4" placeholder="Search EPF…" oninput="renderT4()" style="width:88px;"/>
+            <input class="table-search" id="searchT4Job" placeholder="Search job…" oninput="renderT4()" style="width:88px;"/>
+          </div>
         </div>
         <table>
-          <thead><tr><th>Technician EPF</th><th class="r">Gas (kg)</th></tr></thead>
+          <thead><tr><th>Technician EPF / Job</th><th class="r">Gas (kg)</th></tr></thead>
           <tbody id="bodyT4"></tbody>
         </table>
         <div class="pagination">
@@ -764,80 +932,235 @@
 
     </div>
 
-    <!-- RIGHT FRAME: Drilldown — full height, pagination at bottom -->
+    <!-- RIGHT FRAME: Drilldown -->
     <div class="table-frame-right">
-
-      <!-- Header + all filters on one row -->
       <div style="margin-bottom:10px;">
         <div class="table-block-title" style="margin-bottom:8px;">🔍 Job → Cylinder Drilldown</div>
         <div class="drilldown-filters">
-          <input class="table-search" id="searchT3"
-                 placeholder="Search job…"
-                 oninput="renderT3()"
-                 style="width:100px;"/>
-          <input class="table-search" id="searchT3Serial"
-                 placeholder="Search serial…"
-                 oninput="renderT3()"
-                 style="width:110px;"/>
-          <input type="date" class="table-search" id="searchT3Date"
-                 oninput="renderT3()"
-                 title="Filter by date"/>
+          <input class="table-search" id="searchT3" placeholder="Search job…" oninput="renderT3()" style="width:100px;"/>
+          <input class="table-search" id="searchT3Serial" placeholder="Search serial…" oninput="renderT3()" style="width:110px;"/>
+          <input type="date" class="table-search" id="searchT3Date" oninput="renderT3()" title="Filter by date"/>
           <button class="drilldown-clear-btn" onclick="clearDrilldownFilters()">✕ Clear</button>
         </div>
       </div>
-
-      <!-- Scrollable table -->
       <div class="right-table-wrap">
         <table>
           <thead><tr><th>Job ID / Cylinder Serial</th><th class="r">Gas (kg)</th></tr></thead>
           <tbody id="bodyT3"></tbody>
         </table>
       </div>
-
-      <!-- Pagination pinned at bottom -->
       <div class="pagination" style="margin-top:10px; padding-top:8px; border-top:1px solid var(--grey-200);">
         <span class="pag-info" id="infoT3"></span>
         <div class="pag-btns" id="pagT3"></div>
       </div>
-
     </div>
 
   </div><!-- /tables-outer -->
 
 </div><!-- /main -->
+</div><!-- /page-dashboard -->
+
+
+<!-- PAGE: CAPACITY -->
+<div class="page" id="page-capacity">
+  <div class="capacity-page-wrap">
+    <div class="capacity-card">
+      <div class="capacity-card-header">
+        <div class="capacity-card-icon">🛢️</div>
+        <div>
+          <h2>Cylinder Data Entry</h2>
+          <p>Allocate a new gas cylinder to the system</p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="formAllocDate">Cylinder Allocation Date</label>
+        <input type="date" class="form-input" id="formAllocDate"/>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="formBarcode">Cylinder Barcode</label>
+        <input type="text" class="form-input" id="formBarcode" placeholder="e.g. GAS32KG-25863"/>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="formCapacity">Cylinder Capacity (KG)</label>
+        <input type="number" class="form-input" id="formCapacity" placeholder="e.g. 30" min="0" step="0.1"/>
+      </div>
+
+      <button class="form-submit-btn" id="formSubmitBtn" onclick="submitCylinderForm()">
+        <span id="formSubmitIcon">💾</span>
+        <span id="formSubmitText">Save Cylinder Data</span>
+      </button>
+
+      <div class="form-status" id="formStatus"></div>
+    </div>
+  </div>
+</div><!-- /page-capacity -->
+
 
 <script>
 // ============================================================
 // CONFIG
 // ============================================================
+
+// Gas consumption table — existing (DO NOT CHANGE)
 const JSON_URL = "https://default90edf8b893d14bb6bb173646f2115b.a6.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/f97b700d943e4ce6938c5663726e87fa/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-NBrF4HA0eH0SKcowgcVUwf48KyNENFkNEESL1pjKHo";
 
+// Cylinder capacity table — GET (json→html)
+const CYLINDER_GET_URL = "https://default90edf8b893d14bb6bb173646f2115b.a6.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/2f3ab2f6536f486b9a2e9383a4f31f32/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Kw36dGoo28l5SWKy5Yy7Ex74aqxvKEZ8A4E-F8R0g8c";
+
+// Cylinder capacity table — POST/SAVE (html→json)
+const SAVE_CYLINDER_URL = "https://default90edf8b893d14bb6bb173646f2115b.a6.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/12608a54824246feb4ad8731e09187ad/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=FfD0-sYD160GlrG6ik5_sI2JchC0KIND3FH_OdUIlBM";
+
 const SCANNER_URL = "https://mfdesignlab.github.io/barcode-scanner/abans-scanner.html";
-document.querySelector('.scan-btn').setAttribute('href', SCANNER_URL);
+document.getElementById('scannerLink').setAttribute('href', SCANNER_URL);
 
 const MONTHS      = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-
-const PIE_COLORS = ["#3c096c","#5a189a","#9d4edd","#c77dff","#e0aaff","#3c096c","#240046","#10002b"];
+const PIE_COLORS  = ["#3c096c","#5a189a","#9d4edd","#c77dff","#e0aaff","#3c096c","#240046","#10002b"];
 
 // ============================================================
 // STATE
 // ============================================================
-let allData  = [];
-let filtered = [];
+let allData      = [];   // gas consumption rows (all raw sanitised records)
+let filtered     = [];   // filtered + deduped gas consumption rows
+let cylinderData = [];   // cylinder capacity table rows
 
 let lineChartObj = null;
 let pieChartObj  = null;
 
 const pagState = {
-  t1:{ page:1, perPage:10 },
-  t2:{ page:1, perPage:10 },
-  t3:{ page:1, perPage:18 },
-  t4:{ page:1, perPage:10 },
+  t1: { page:1, perPage:10 },
+  t2: { page:1, perPage:10 },
+  t3: { page:1, perPage:18 },
+  t4: { page:1, perPage:7  },
 };
 
 // ============================================================
-// FETCH
+// PAGE NAVIGATION
+// ============================================================
+function handleCylinderNavBtn() {
+  const currentPage = document.querySelector('.page.active');
+  if (currentPage && currentPage.id === 'page-capacity') {
+    showPage('dashboard');
+  } else {
+    showPage('capacity');
+  }
+}
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+
+  const btn        = document.getElementById('cylinderNavBtn');
+  const filtersBtn = document.getElementById('filtersPanelBtn');
+
+  if (name === 'capacity') {
+    btn.innerHTML = '🏠 Dashboard';
+    filtersBtn.style.display = 'none';
+    closeFilterPanel();
+    const today = new Date().toISOString().slice(0,10);
+    document.getElementById('formAllocDate').value = today;
+    const st = document.getElementById('formStatus');
+    st.className     = 'form-status';
+    st.style.display = 'none';
+    st.textContent   = '';
+  } else {
+    btn.innerHTML = '🛢️ Cylinder Data';
+    filtersBtn.style.display = '';
+  }
+}
+
+// ============================================================
+// FILTER PANEL
+// ============================================================
+let filterPanelOpen = false;
+
+function toggleFilterPanel() {
+  filterPanelOpen ? closeFilterPanel() : openFilterPanel();
+}
+function openFilterPanel() {
+  filterPanelOpen = true;
+  document.getElementById('filterPanel').classList.add('open');
+  document.getElementById('filterPanelOverlay').classList.add('visible');
+  document.getElementById('filtersPanelBtn').classList.add('active');
+}
+function closeFilterPanel() {
+  filterPanelOpen = false;
+  document.getElementById('filterPanel').classList.remove('open');
+  document.getElementById('filterPanelOverlay').classList.remove('visible');
+  document.getElementById('filtersPanelBtn').classList.remove('active');
+}
+
+// ============================================================
+// CYLINDER FORM SUBMIT
+// ============================================================
+async function submitCylinderForm() {
+  const allocDate   = document.getElementById('formAllocDate').value;
+  const barcode     = document.getElementById('formBarcode').value.trim();
+  const capacityRaw = document.getElementById('formCapacity').value.trim();
+  const capacityNum = parseFloat(capacityRaw);
+
+  const st = document.getElementById('formStatus');
+  st.className     = 'form-status';
+  st.style.display = 'none';
+  st.textContent   = '';
+
+  if (!allocDate) { showFormStatus('error', '⚠️ Please select an Allocation Date.'); return; }
+  if (!barcode)   { showFormStatus('error', '⚠️ Please enter the Cylinder Barcode.'); return; }
+  if (!capacityRaw || isNaN(capacityNum) || capacityNum <= 0) {
+    showFormStatus('error', '⚠️ Please enter a valid Cylinder Capacity (KG).');
+    return;
+  }
+
+  const btn = document.getElementById('formSubmitBtn');
+  btn.disabled = true;
+  document.getElementById('formSubmitIcon').textContent = '⏳';
+  document.getElementById('formSubmitText').textContent = 'Saving…';
+
+  const payload = {
+    "Allocated_Date":           allocDate,
+    "Cylinder_Barcode":         barcode,
+    "Allocated_Capacity (KG)":  capacityNum
+  };
+
+  try {
+    const res = await fetch(SAVE_CYLINDER_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload)
+    });
+
+    if (res.ok || res.status === 202) {
+      showFormStatus('success', '✅ Cylinder data saved successfully!');
+      document.getElementById('formBarcode').value  = '';
+      document.getElementById('formCapacity').value = '';
+      document.getElementById('formAllocDate').value = new Date().toISOString().slice(0,10);
+      loadCylinderData();
+    } else {
+      let errBody = '';
+      try { errBody = await res.text(); } catch(_) {}
+      throw new Error(`HTTP ${res.status} ${res.statusText}${errBody ? ' — ' + errBody.slice(0,150) : ''}`);
+    }
+  } catch(e) {
+    showFormStatus('error', '❌ Failed to save: ' + e.message);
+  }
+
+  btn.disabled = false;
+  document.getElementById('formSubmitIcon').textContent = '💾';
+  document.getElementById('formSubmitText').textContent = 'Save Cylinder Data';
+}
+
+function showFormStatus(type, msg) {
+  const el = document.getElementById('formStatus');
+  el.className     = 'form-status ' + type;
+  el.textContent   = msg;
+  el.style.display = 'flex';
+}
+
+// ============================================================
+// FETCH — Gas Consumption
 // ============================================================
 async function loadData() {
   showLoading(true);
@@ -845,12 +1168,11 @@ async function loadData() {
   btn.classList.add('spinning');
 
   try {
-    const res = await fetch(JSON_URL, { method:"POST" });
+    const res = await fetch(JSON_URL, { method: "POST" });
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
 
     const json = await res.json();
-    let rows = Array.isArray(json) ? json : (json.body || []);
-
+    const rows = Array.isArray(json) ? json : (json.body || json.value || []);
     allData = sanitise(rows);
 
     const curYear = String(new Date().getFullYear());
@@ -861,8 +1183,8 @@ async function loadData() {
 
     const now = new Date();
     document.getElementById('lastUpdated').textContent =
-      now.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) +
-      '  ' + now.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) +
+      '  ' + now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 
     showLoading(false);
     document.getElementById('mainContent').style.display = 'block';
@@ -873,16 +1195,107 @@ async function loadData() {
   }
 
   btn.classList.remove('spinning');
+
+  // Load cylinder capacity data independently (non-blocking)
+  loadCylinderData();
 }
 
 // ============================================================
-// SANITISE
+// FETCH — Cylinder Capacity Table
+// ============================================================
+async function loadCylinderData() {
+  try {
+    const res = await fetch(CYLINDER_GET_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!res.ok) throw new Error(`Cylinder GET HTTP ${res.status}`);
+
+    const json = await res.json();
+    const rows = Array.isArray(json) ? json : (json.body || json.value || []);
+    cylinderData = sanitiseCylinderData(rows);
+
+  } catch(e) {
+    console.warn('Cylinder data load failed:', e.message);
+    cylinderData = [];
+  }
+  renderT2();
+}
+
+// ============================================================
+// SANITISE — Cylinder Capacity Table
+// ============================================================
+function sanitiseCylinderData(rows) {
+  return rows
+    .filter(r => {
+      const b = r['Cylinder_Barcode'] || r['Cylinder Barcode'] || '';
+      const d = r['Allocated_Date']   || r['Allocated Date']   || '';
+      return String(b).trim() && String(d).trim();
+    })
+    .map(r => {
+      let d = String(r['Allocated_Date'] || r['Allocated Date'] || '').trim();
+      if (/^\d+(\.\d+)?$/.test(d))   d = excelDateToJSDate(parseFloat(d));
+      else if (d.includes('T'))       d = d.split('T')[0];
+
+      return {
+        allocDate:     d,
+        barcode:       String(r['Cylinder_Barcode'] || r['Cylinder Barcode'] || '').trim(),
+        allocCapKG:    parseFloat(r['Allocated_Capacity (KG)'] || r['Allocated Capacity (KG)'] || 0) || 0,
+        consumptionKG: parseFloat(r['Consumption (KG)'] || 0) || 0,
+        balanceKG:     parseFloat(r['Balance (KG)']     || 0) || 0,
+      };
+    })
+    .filter(r => r.allocDate && /^\d{4}-\d{2}-\d{2}$/.test(r.allocDate) && r.barcode);
+}
+
+// ============================================================
+// DAYS USED  ← FIXED
+// ============================================================
+// Source: allData (gas consumption table — JSON_URL)
+// Match:  Gas_Cylinder_Serial (r.serial) vs cylinder barcode, case-insensitive + trimmed
+// Filter: only scan rows where r.date >= allocDate
+// Logic:
+//   • If balanceKG <= 0 (cylinder exhausted):
+//       → calendar days from allocDate to last scan date (inclusive)
+//   • If balanceKG > 0 (cylinder still in use):
+//       → count of distinct Scanned_Date values for this cylinder
+//   • If no matching scan rows found → return null (show "—")
+// ============================================================
+function computeDaysUsed(barcode, allocDate, balanceKG) {
+  const barcodeNorm = barcode.trim().toLowerCase();
+
+  // Search across ALL raw gas consumption data (allData), not filtered
+  const matching = allData.filter(r =>
+    r.serial.trim().toLowerCase() === barcodeNorm &&
+    r.date >= allocDate
+  );
+
+  if (!matching.length) return null;
+
+  // Collect distinct scan dates and sort ascending
+  const distinctDates = [...new Set(matching.map(r => r.date))].sort();
+
+  if (balanceKG <= 0) {
+    // Cylinder exhausted — return inclusive calendar days from allocDate to last scan
+    const d1   = new Date(allocDate);
+    const d2   = new Date(distinctDates[distinctDates.length - 1]);
+    const diff = Math.round((d2 - d1) / 86400000);
+    // If last scan is same day as alloc, diff = 0 → 1 day
+    return diff >= 0 ? diff + 1 : distinctDates.length;
+  }
+
+  // Cylinder still active — return number of distinct days it was scanned/used
+  return distinctDates.length;
+}
+
+// ============================================================
+// SANITISE — Gas Consumption
 // ============================================================
 function excelDateToJSDate(serial) {
   if (!serial) return null;
-  const excelEpoch = new Date(Date.UTC(1899, 11, 30));
-  const jsDate = new Date(excelEpoch.getTime() + serial * 86400000);
-  return jsDate.toISOString().slice(0, 10);
+  const epoch  = new Date(Date.UTC(1899,11,30));
+  const jsDate = new Date(epoch.getTime() + serial * 86400000);
+  return jsDate.toISOString().slice(0,10);
 }
 
 function sanitise(rows) {
@@ -895,11 +1308,8 @@ function sanitise(rows) {
     )
     .map(r => {
       let d = String(r.Scanned_Date || '').trim();
-      if (/^\d+(\.\d+)?$/.test(d)) {
-        d = excelDateToJSDate(parseFloat(d));
-      } else if (d.includes('T')) {
-        d = d.split('T')[0];
-      }
+      if (/^\d+(\.\d+)?$/.test(d))  d = excelDateToJSDate(parseFloat(d));
+      else if (d.includes('T'))      d = d.split('T')[0];
       return {
         job:    String(r.Job_id).trim(),
         serial: String(r.Gas_Cylinder_Serial).trim(),
@@ -938,18 +1348,17 @@ function applyFilters() {
   const dateTo   = document.getElementById('filterDateTo').value;
 
   const raw = allData.filter(r => {
-    if (r.date.slice(0,4) !== year)                             return false;
+    if (r.date.slice(0,4) !== year)                                              return false;
     if (month !== 'all' && (parseInt(r.date.slice(5,7))-1) !== parseInt(month)) return false;
-    if (dateFrom && r.date < dateFrom)                          return false;
-    if (dateTo   && r.date > dateTo)                            return false;
-    if (gasType !== 'all' && r.type !== gasType)                return false;
-    if (epf    && !r.epf.toLowerCase().includes(epf))          return false;
-    if (serial && !r.serial.toLowerCase().includes(serial))    return false;
+    if (dateFrom && r.date < dateFrom)                                           return false;
+    if (dateTo   && r.date > dateTo)                                             return false;
+    if (gasType !== 'all' && r.type !== gasType)                                 return false;
+    if (epf    && !r.epf.toLowerCase().includes(epf))                           return false;
+    if (serial && !r.serial.toLowerCase().includes(serial))                     return false;
     return true;
   });
 
   filtered = dedup(raw);
-
   pagState.t1.page = pagState.t2.page = pagState.t3.page = pagState.t4.page = 1;
 
   renderKPIs(year, month);
@@ -958,12 +1367,12 @@ function applyFilters() {
 }
 
 function clearFilters() {
-  document.getElementById('filterMonth').value   = 'all';
-  document.getElementById('filterGasType').value = 'all';
-  document.getElementById('filterEPF').value     = '';
-  document.getElementById('filterSerial').value  = '';
-  document.getElementById('filterDateFrom').value= '';
-  document.getElementById('filterDateTo').value  = '';
+  document.getElementById('filterMonth').value    = 'all';
+  document.getElementById('filterGasType').value  = 'all';
+  document.getElementById('filterEPF').value      = '';
+  document.getElementById('filterSerial').value   = '';
+  document.getElementById('filterDateFrom').value = '';
+  document.getElementById('filterDateTo').value   = '';
   const fy = document.getElementById('filterYear');
   const cur = String(new Date().getFullYear());
   if ([...fy.options].some(o => o.value === cur)) fy.value = cur;
@@ -971,9 +1380,9 @@ function clearFilters() {
 }
 
 function clearDrilldownFilters() {
-  document.getElementById('searchT3').value      = '';
-  document.getElementById('searchT3Serial').value= '';
-  document.getElementById('searchT3Date').value  = '';
+  document.getElementById('searchT3').value       = '';
+  document.getElementById('searchT3Serial').value = '';
+  document.getElementById('searchT3Date').value   = '';
   pagState.t3.page = 1;
   renderT3();
 }
@@ -994,8 +1403,8 @@ function renderKPIs(selYear, selMonth) {
   const wStart = weekStart.toISOString().slice(0,10);
   const wEnd   = weekEnd.toISOString().slice(0,10);
 
-  const totalCyl = new Set(filtered.map(r => r.serial)).size;
-  const yearStr = String(curYear);
+  const totalCyl   = new Set(filtered.map(r => r.serial)).size;
+  const yearStr    = String(curYear);
   const rawCurYear = allData.filter(r => r.date.slice(0,4) === yearStr);
 
   const epf    = document.getElementById('filterEPF').value.trim().toLowerCase();
@@ -1003,39 +1412,39 @@ function renderKPIs(selYear, selMonth) {
   const gtype  = document.getElementById('filterGasType').value;
 
   function matchFilters(r) {
-    if (gtype !== 'all' && r.type !== gtype) return false;
-    if (epf    && !r.epf.toLowerCase().includes(epf))     return false;
-    if (serial && !r.serial.toLowerCase().includes(serial)) return false;
+    if (gtype !== 'all' && r.type !== gtype)                    return false;
+    if (epf    && !r.epf.toLowerCase().includes(epf))          return false;
+    if (serial && !r.serial.toLowerCase().includes(serial))    return false;
     return true;
   }
 
   const thisMonthRaw   = rawCurYear.filter(r => parseInt(r.date.slice(5,7))-1 === curMonth && matchFilters(r));
   const thisMonthDedup = dedup(thisMonthRaw);
-  const gasThisMonth   = thisMonthDedup.reduce((s,r) => s+r.cons, 0);
-  const jobsThisMonth  = new Set(thisMonthDedup.map(r => r.job)).size;
+  const gasThisMonth   = thisMonthDedup.reduce((s,r)=>s+r.cons,0);
+  const jobsThisMonth  = new Set(thisMonthDedup.map(r=>r.job)).size;
 
   const prevMonthRaw  = allData.filter(r =>
     r.date.slice(0,4) === String(prevMonthYear) &&
     parseInt(r.date.slice(5,7))-1 === prevMonth &&
     matchFilters(r)
   );
-  const gasPrevMonth  = dedup(prevMonthRaw).reduce((s,r) => s+r.cons, 0);
+  const gasPrevMonth  = dedup(prevMonthRaw).reduce((s,r)=>s+r.cons,0);
 
-  const thisWeekDedup = dedup(rawCurYear.filter(r => r.date >= wStart && r.date <= wEnd && matchFilters(r)));
-  const gasThisWeek   = thisWeekDedup.reduce((s,r) => s+r.cons, 0);
-  const gasThisYear   = filtered.reduce((s,r) => s+r.cons, 0);
+  const thisWeekDedup = dedup(rawCurYear.filter(r => r.date>=wStart && r.date<=wEnd && matchFilters(r)));
+  const gasThisWeek   = thisWeekDedup.reduce((s,r)=>s+r.cons,0);
+  const gasThisYear   = filtered.reduce((s,r)=>s+r.cons,0);
 
-  document.getElementById('kpiCylinders').textContent   = totalCyl;
-  document.getElementById('kpiJobsMonth').textContent   = jobsThisMonth;
+  document.getElementById('kpiCylinders').textContent    = totalCyl;
+  document.getElementById('kpiJobsMonth').textContent    = jobsThisMonth;
   document.getElementById('kpiJobsMonthSub').textContent = MONTH_NAMES[curMonth] + ' ' + curYear;
-  document.getElementById('kpiGasWeek').innerHTML       = gasThisWeek.toFixed(1) + '<span>kg</span>';
-  document.getElementById('kpiGasWeekSub').textContent  = 'Week of ' + wStart;
-  document.getElementById('kpiGasMonth').innerHTML      = gasThisMonth.toFixed(1) + '<span>kg</span>';
-  document.getElementById('kpiGasMonthSub').textContent = MONTH_NAMES[curMonth] + ' ' + curYear;
-  document.getElementById('kpiGasPrev').innerHTML       = gasPrevMonth.toFixed(1) + '<span>kg</span>';
-  document.getElementById('kpiGasPrevSub').textContent  = MONTH_NAMES[prevMonth] + ' total';
-  document.getElementById('kpiGasYear').innerHTML       = gasThisYear.toFixed(1) + '<span>kg</span>';
-  document.getElementById('kpiGasYearSub').textContent  = selYear + ' (filtered)';
+  document.getElementById('kpiGasWeek').innerHTML        = gasThisWeek.toFixed(1) + '<span>kg</span>';
+  document.getElementById('kpiGasWeekSub').textContent   = 'Week of ' + wStart;
+  document.getElementById('kpiGasMonth').innerHTML       = gasThisMonth.toFixed(1) + '<span>kg</span>';
+  document.getElementById('kpiGasMonthSub').textContent  = MONTH_NAMES[curMonth] + ' ' + curYear;
+  document.getElementById('kpiGasPrev').innerHTML        = gasPrevMonth.toFixed(1) + '<span>kg</span>';
+  document.getElementById('kpiGasPrevSub').textContent   = MONTH_NAMES[prevMonth] + ' total';
+  document.getElementById('kpiGasYear').innerHTML        = gasThisYear.toFixed(1) + '<span>kg</span>';
+  document.getElementById('kpiGasYearSub').textContent   = selYear + ' (filtered)';
 }
 
 // ============================================================
@@ -1048,170 +1457,101 @@ function renderCharts(year) {
     const m = parseInt(r.date.slice(5,7)) - 1;
     if (m >= 0 && m < 12) monthly[m] += r.cons;
   });
-
   const typeMap = {};
-  filtered.forEach(r => {
-    const t = r.type || 'Unknown';
-    typeMap[t] = (typeMap[t]||0) + r.cons;
-  });
-
+  filtered.forEach(r => { const t = r.type||'Unknown'; typeMap[t]=(typeMap[t]||0)+r.cons; });
   renderLineChart(monthly, year);
   renderPieChart(typeMap, year);
 }
 
-// ── Line chart ──
 function renderLineChart(monthly, year) {
   document.getElementById('lineChartSub').textContent = year + ' — total kg per month';
   const ctx = document.getElementById('lineChart').getContext('2d');
   if (lineChartObj) lineChartObj.destroy();
-
   const data = monthly.map(v => parseFloat(v.toFixed(1)));
 
   const topLabelPlugin = {
     id: 'topLabels',
     afterDatasetsDraw(chart) {
-      const { ctx: c, data: d } = chart;
+      const { ctx:c, data:d } = chart;
       const ds = chart.getDatasetMeta(0);
-      d.datasets[0].data.forEach((val, i) => {
-        if (val === 0) return;
+      d.datasets[0].data.forEach((val,i) => {
+        if (val===0) return;
         const pt = ds.data[i];
-        c.save();
-        c.font = 'bold 10px DM Sans, sans-serif';
-        c.fillStyle = '#5b21b6';
-        c.textAlign = 'center';
-        c.textBaseline = 'bottom';
-        c.fillText(val.toFixed(1), pt.x, pt.y - 5);
-        c.restore();
+        c.save(); c.font='bold 10px DM Sans, sans-serif'; c.fillStyle='#5b21b6';
+        c.textAlign='center'; c.textBaseline='bottom';
+        c.fillText(val.toFixed(1), pt.x, pt.y-5); c.restore();
       });
     }
   };
 
   lineChartObj = new Chart(ctx, {
-    type: 'line',
-    plugins: [topLabelPlugin],
-    data: {
-      labels: MONTHS,
-      datasets: [{
-        label: 'Gas (kg)',
-        data,
-        borderColor: '#7c3aed',
-        backgroundColor: 'rgba(124,58,237,.08)',
-        pointBackgroundColor: '#7c3aed',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-        tension: 0.4,
-        fill: true,
-        borderWidth: 2,
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { display:false },
-        tooltip: { callbacks: { label: c => ` ${c.parsed.y.toFixed(1)} kg` } }
+    type:'line', plugins:[topLabelPlugin],
+    data:{ labels:MONTHS, datasets:[{
+      label:'Gas (kg)', data,
+      borderColor:'#7c3aed', backgroundColor:'rgba(124,58,237,.08)',
+      pointBackgroundColor:'#7c3aed', pointBorderColor:'#fff',
+      pointBorderWidth:2, pointRadius:4, pointHoverRadius:6,
+      tension:0.4, fill:true, borderWidth:2
+    }]},
+    options:{
+      responsive:true,
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${c.parsed.y.toFixed(1)} kg`}} },
+      scales:{
+        y:{ beginAtZero:true, suggestedMax:Math.max(...data)*1.3||10,
+            grid:{color:'rgba(167,139,250,.12)'},
+            ticks:{font:{family:'DM Mono',size:9}, callback:v=>v.toFixed(0)+' kg'} },
+        x:{ grid:{display:false}, ticks:{font:{family:'DM Sans',size:10,weight:'600'}} }
       },
-      scales: {
-        y: {
-          beginAtZero: true,
-          suggestedMax: Math.max(...data) * 1.3 || 10,
-          grid: { color:'rgba(167,139,250,.12)' },
-          ticks: {
-            font:{ family:'DM Mono',size:9 },
-            callback: v => v.toFixed(0) + ' kg'
-          }
-        },
-        x: {
-          grid:{ display:false },
-          ticks:{ font:{ family:'DM Sans',size:10,weight:'600' } }
-        }
-      },
-      layout: { padding:{ top:18 } }
+      layout:{padding:{top:18}}
     }
   });
 }
 
-// ── Pie chart — NO arrows/labels, centre total, legend at bottom ──
 function renderPieChart(typeMap, year) {
   document.getElementById('pieChartSub').textContent = year + ' — consumption by type';
   const ctx = document.getElementById('pieChart').getContext('2d');
   if (pieChartObj) pieChartObj.destroy();
-
   const labels = Object.keys(typeMap);
   const values = labels.map(l => parseFloat(typeMap[l].toFixed(1)));
-  const total  = values.reduce((a,b) => a+b, 0);
+  const total  = values.reduce((a,b)=>a+b,0);
 
-  // Centre total plugin
   const centerTotalPlugin = {
-    id: 'centerTotal',
+    id:'centerTotal',
     afterRender(chart) {
-      if (total === 0) return;
-      const { ctx: c, chartArea: { left, right, top, bottom } } = chart;
-      const cx = (left + right) / 2;
-      const cy = (top  + bottom) / 2;
-      c.save();
-      c.textAlign    = 'center';
-      c.textBaseline = 'middle';
-      c.font         = 'bold 17px DM Sans, sans-serif';
-      c.fillStyle    = '#3b0764';
-      c.fillText(total.toFixed(1), cx, cy - 7);
-      c.font         = '10px DM Sans, sans-serif';
-      c.fillStyle    = '#8b85a8';
-      c.fillText('kg total', cx, cy + 10);
-      c.restore();
+      if (!total) return;
+      const {ctx:c, chartArea:{left,right,top,bottom}} = chart;
+      const cx=(left+right)/2, cy=(top+bottom)/2;
+      c.save(); c.textAlign='center'; c.textBaseline='middle';
+      c.font='bold 17px DM Sans, sans-serif'; c.fillStyle='#3b0764';
+      c.fillText(total.toFixed(1), cx, cy-7);
+      c.font='10px DM Sans, sans-serif'; c.fillStyle='#8b85a8';
+      c.fillText('kg total', cx, cy+10); c.restore();
     }
   };
 
-  // Legend box at bottom
   const legendBox = document.getElementById('pieLegendBox');
-  if (legendBox) {
-    if (labels.length === 0) {
-      legendBox.innerHTML = `<div style="font-size:11px;color:var(--grey-500);font-family:'DM Sans';">No data</div>`;
-    } else {
-      legendBox.innerHTML = labels.map((lbl, i) => {
-        const pct   = total > 0 ? ((values[i] / total) * 100).toFixed(1) : '0.0';
-        const color = PIE_COLORS[i % PIE_COLORS.length];
-        return `
-          <div style="display:flex;align-items:center;gap:5px;white-space:nowrap;">
-            <div style="width:9px;height:9px;border-radius:2px;background:${color};flex-shrink:0;"></div>
-            <span style="font-size:11px;font-weight:700;color:#3b0764;font-family:'DM Sans';">${lbl}</span>
-            <span style="font-size:11px;color:#8b85a8;font-family:'DM Sans';">${pct}%</span>
-          </div>`;
+  legendBox.innerHTML = labels.length === 0
+    ? `<div style="font-size:11px;color:var(--grey-500);font-family:'DM Sans';">No data</div>`
+    : labels.map((lbl,i) => {
+        const pct   = total>0 ? ((values[i]/total)*100).toFixed(1) : '0.0';
+        const color = PIE_COLORS[i%PIE_COLORS.length];
+        return `<div style="display:flex;align-items:center;gap:5px;white-space:nowrap;">
+          <div style="width:9px;height:9px;border-radius:2px;background:${color};flex-shrink:0;"></div>
+          <span style="font-size:11px;font-weight:700;color:#3b0764;font-family:'DM Sans';">${lbl}</span>
+          <span style="font-size:11px;color:#8b85a8;font-family:'DM Sans';">${pct}%</span>
+        </div>`;
       }).join('');
-    }
-  }
 
   pieChartObj = new Chart(ctx, {
-    type: 'doughnut',
-    plugins: [centerTotalPlugin],
-    data: {
-      labels,
-      datasets: [{
-        data: values,
-        backgroundColor: PIE_COLORS.slice(0, labels.length),
-        borderColor: '#fff',
-        borderWidth: 3,
-        hoverOffset: 5,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      cutout: '58%',
-      layout: { padding: 8 },
-      animation: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: c => {
-              const pct = total > 0 ? ((c.parsed / total) * 100).toFixed(1) : 0;
-              return ` ${c.parsed.toFixed(1)} kg (${pct}%)`;
-            }
-          }
-        }
-      }
+    type:'doughnut', plugins:[centerTotalPlugin],
+    data:{ labels, datasets:[{ data:values, backgroundColor:PIE_COLORS.slice(0,labels.length), borderColor:'#fff', borderWidth:3, hoverOffset:5 }] },
+    options:{
+      responsive:true, maintainAspectRatio:true, cutout:'58%',
+      layout:{padding:8}, animation:false,
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>{
+        const pct=total>0?((c.parsed/total)*100).toFixed(1):0;
+        return ` ${c.parsed.toFixed(1)} kg (${pct}%)`;
+      }}}}
     }
   });
 }
@@ -1220,30 +1560,23 @@ function renderPieChart(typeMap, year) {
 // PAGINATION HELPER
 // ============================================================
 function buildPagination(contId, infoId, total, perPage, curPage, setPage) {
-  const pages = Math.ceil(total/perPage) || 1;
+  const pages = Math.ceil(total/perPage)||1;
   const from  = Math.min((curPage-1)*perPage+1, total);
   const to    = Math.min(curPage*perPage, total);
-  document.getElementById(infoId).textContent = total === 0 ? '0 records' : `${from}–${to} of ${total}`;
-
-  const cont = document.getElementById(contId);
+  document.getElementById(infoId).textContent = total===0 ? '0 records' : `${from}–${to} of ${total}`;
+  const cont  = document.getElementById(contId);
   cont.innerHTML = '';
-  const prev = mkBtn('‹', curPage===1, () => setPage(curPage-1));
-  cont.appendChild(prev);
-  const start = Math.max(1, curPage-2);
-  const end   = Math.min(pages, start+4);
-  for (let p=start; p<=end; p++) {
-    const b = mkBtn(p, false, () => setPage(p), p===curPage);
-    cont.appendChild(b);
-  }
-  const next = mkBtn('›', curPage===pages, () => setPage(curPage+1));
-  cont.appendChild(next);
+  cont.appendChild(mkBtn('‹', curPage===1, ()=>setPage(curPage-1)));
+  const start = Math.max(1,curPage-2), end = Math.min(pages,start+4);
+  for (let p=start;p<=end;p++) cont.appendChild(mkBtn(p,false,()=>setPage(p),p===curPage));
+  cont.appendChild(mkBtn('›', curPage===pages, ()=>setPage(curPage+1)));
 }
 
 function mkBtn(label, disabled, cb, active=false) {
   const b = document.createElement('button');
-  b.className = 'pag-btn' + (active?' active':'');
-  b.textContent = label;
-  b.disabled = disabled;
+  b.className  = 'pag-btn'+(active?' active':'');
+  b.textContent= label;
+  b.disabled   = disabled;
   if (!disabled) b.onclick = cb;
   return b;
 }
@@ -1261,47 +1594,59 @@ function renderT1() {
     map[r.job] = (map[r.job]||0) + r.cons;
   });
   const rows = Object.entries(map).sort((a,b)=>b[1]-a[1]);
-  const { page, perPage } = pagState.t1;
+  const {page,perPage} = pagState.t1;
   const slice = rows.slice((page-1)*perPage, page*perPage);
   document.getElementById('bodyT1').innerHTML = slice.length
     ? slice.map(([job,c])=>`<tr><td class="job-cell">${job}</td><td class="r num-cell">${c.toFixed(1)}</td></tr>`).join('')
     : noData(2);
-  buildPagination('pagT1','infoT1', rows.length, perPage, page, p=>{pagState.t1.page=p;renderT1();});
+  buildPagination('pagT1','infoT1',rows.length,perPage,page,p=>{pagState.t1.page=p;renderT1();});
 }
 
 // ============================================================
 // TABLE 2 — Cylinder Consumption
+// Data from cylinder capacity table; Days Used from allData via computeDaysUsed()
 // ============================================================
 function renderT2() {
   const s = document.getElementById('searchT2').value.toLowerCase();
-  const map = {};
-  filtered.forEach(r => {
-    if (s && !r.serial.toLowerCase().includes(s)) return;
-    map[r.serial] = (map[r.serial]||0) + r.cons;
-  });
-  const rows = Object.entries(map).sort((a,b)=>b[1]-a[1]);
-  const { page, perPage } = pagState.t2;
+  let rows = cylinderData.slice();
+  if (s) rows = rows.filter(r => r.barcode.toLowerCase().includes(s) || r.allocDate.includes(s));
+  rows.sort((a,b) => b.allocDate.localeCompare(a.allocDate));
+
+  const {page,perPage} = pagState.t2;
   const slice = rows.slice((page-1)*perPage, page*perPage);
+
   document.getElementById('bodyT2').innerHTML = slice.length
-    ? slice.map(([serial,c])=>`<tr><td style="font-family:'DM Mono';font-size:11px;">${serial}</td><td class="r num-cell">${c.toFixed(1)}</td></tr>`).join('')
-    : noData(2);
-  buildPagination('pagT2','infoT2', rows.length, perPage, page, p=>{pagState.t2.page=p;renderT2();});
+    ? slice.map(r => {
+        const daysUsed  = computeDaysUsed(r.barcode, r.allocDate, r.balanceKG);
+        const daysCell  = daysUsed !== null
+          ? `<span style="font-weight:600;color:var(--purple-dark);font-family:'DM Mono';font-size:11px;">${daysUsed}</span>`
+          : `<span style="color:var(--grey-500);font-size:11px;">—</span>`;
+        const balColor  = r.balanceKG <= 0.0 ? 'var(--red)' : (r.balanceKG < 5.0 ? 'var(--amber)' : 'var(--green)');
+        return `<tr>
+          <td style="font-family:'DM Mono';font-size:11px;">${r.allocDate}</td>
+          <td style="font-family:'DM Mono';font-size:11px;">${r.barcode}</td>
+          <td class="r num-cell">${r.allocCapKG.toFixed(1)}</td>
+          <td class="r num-cell">${r.consumptionKG.toFixed(1)}</td>
+          <td class="r" style="font-weight:560;color:${balColor};font-family:'DM Mono';font-size:12px;">${r.balanceKG.toFixed(1)}</td>
+          <td class="r">${daysCell}</td>
+        </tr>`;
+      }).join('')
+    : noData(6);
+
+  buildPagination('pagT2','infoT2',rows.length,perPage,page,p=>{pagState.t2.page=p;renderT2();});
 }
 
 // ============================================================
-// TABLE 3 — Drilldown: Job → Cylinders (with date filter)
+// TABLE 3 — Drilldown: Job → Cylinders
 // ============================================================
 function renderT3() {
-  const s    = document.getElementById('searchT3').value.toLowerCase();
-  const ss   = document.getElementById('searchT3Serial').value.toLowerCase();
-  const sd   = document.getElementById('searchT3Date').value; // YYYY-MM-DD or empty
+  const s  = document.getElementById('searchT3').value.toLowerCase();
+  const ss = document.getElementById('searchT3Serial').value.toLowerCase();
+  const sd = document.getElementById('searchT3Date').value;
 
-  // Filter the raw (pre-dedup) data so date filter applies to original records
   const rawFiltered = allData.filter(r => {
-    // Must also pass the global year filter
     const selYear = document.getElementById('filterYear').value;
-    if (r.date.slice(0,4) !== selYear) return false;
-
+    if (r.date.slice(0,4) !== selYear)              return false;
     if (s  && !r.job.toLowerCase().includes(s))     return false;
     if (ss && !r.serial.toLowerCase().includes(ss)) return false;
     if (sd && r.date !== sd)                         return false;
@@ -1314,60 +1659,84 @@ function renderT3() {
     byJob[r.job].push(r);
   });
 
-  // Dedup within each job
-  const jobEntries = Object.entries(byJob).map(([job, rows]) => {
-    const dedupedRows = Object.values(
-      rows.reduce((acc, r) => {
-        if (!acc[r.serial]) acc[r.serial] = { ...r };
-        else acc[r.serial].cons += r.cons;
-        return acc;
-      }, {})
-    );
+  const jobEntries = Object.entries(byJob).map(([job,rows]) => {
+    const dedupedRows = Object.values(rows.reduce((acc,r) => {
+      if (!acc[r.serial]) acc[r.serial] = {...r};
+      else acc[r.serial].cons += r.cons;
+      return acc;
+    }, {}));
     return [job, dedupedRows];
-  }).sort((a,b) => totalCons(b[1]) - totalCons(a[1]));
+  }).sort((a,b) => totalCons(b[1])-totalCons(a[1]));
 
-  const { page, perPage } = pagState.t3;
+  const {page,perPage} = pagState.t3;
   const slice = jobEntries.slice((page-1)*perPage, page*perPage);
 
   const body = document.getElementById('bodyT3');
-  if (!slice.length) { body.innerHTML = noData(2); }
-  else {
-    body.innerHTML = slice.map(([job, rows]) => {
-      const jTot = totalCons(rows).toFixed(1);
-      const hdr = `<tr class="grp-hdr">
-        <td style="color:var(--purple-dark);font-weight:700;font-family:'DM Sans';">💼 ${job}</td>
-        <td class="r" style="color:var(--purple-dark);font-weight:700;font-family:'DM Sans';">${jTot}</td>
-      </tr>`;
-      const subs = rows.map(r =>
-        `<tr class="sub-row">
-          <td style="padding-left:20px;color:#111;font-weight:400;font-family:'DM Mono';font-size:11px;">↳ ${r.serial}</td>
-          <td class="r" style="color:#111;font-weight:400;">${r.cons.toFixed(1)}</td>
-        </tr>`
-      ).join('');
-      return hdr + subs;
-    }).join('');
-  }
+  body.innerHTML = !slice.length ? noData(2) : slice.map(([job,rows]) => {
+    const jTot = totalCons(rows).toFixed(1);
+    const hdr  = `<tr class="grp-hdr">
+      <td style="color:var(--purple-dark);font-weight:700;font-family:'DM Sans';">💼 ${job}</td>
+      <td class="r" style="color:var(--purple-dark);font-weight:700;font-family:'DM Sans';">${jTot}</td>
+    </tr>`;
+    const subs = rows.map(r =>
+      `<tr class="sub-row">
+        <td style="padding-left:20px;color:#111;font-weight:400;font-family:'DM Mono';font-size:11px;">↳ ${r.serial}</td>
+        <td class="r" style="color:#111;font-weight:400;">${r.cons.toFixed(1)}</td>
+      </tr>`
+    ).join('');
+    return hdr + subs;
+  }).join('');
 
-  buildPagination('pagT3','infoT3', jobEntries.length, perPage, page, p=>{pagState.t3.page=p;renderT3();});
+  buildPagination('pagT3','infoT3',jobEntries.length,perPage,page,p=>{pagState.t3.page=p;renderT3();});
 }
 
 // ============================================================
 // TABLE 4 — Technician Consumption
 // ============================================================
 function renderT4() {
-  const s = document.getElementById('searchT4').value.toLowerCase();
-  const map = {};
+  const sEpf = document.getElementById('searchT4').value.toLowerCase();
+  const sJob = document.getElementById('searchT4Job').value.toLowerCase();
+
+  const epfMap = {};
   filtered.forEach(r => {
-    if (s && !r.epf.toLowerCase().includes(s)) return;
-    map[r.epf] = (map[r.epf]||0) + r.cons;
+    if (sEpf && !r.epf.toLowerCase().includes(sEpf))   return;
+    if (sJob && !r.job.toLowerCase().includes(sJob))    return;
+    if (!epfMap[r.epf]) epfMap[r.epf] = {};
+    epfMap[r.epf][r.job] = (epfMap[r.epf][r.job]||0) + r.cons;
   });
-  const rows = Object.entries(map).sort((a,b)=>b[1]-a[1]);
-  const { page, perPage } = pagState.t4;
-  const slice = rows.slice((page-1)*perPage, page*perPage);
-  document.getElementById('bodyT4').innerHTML = slice.length
-    ? slice.map(([epf,c])=>`<tr><td class="job-cell">${epf}</td><td class="r num-cell">${c.toFixed(1)}</td></tr>`).join('')
-    : noData(2);
-  buildPagination('pagT4','infoT4', rows.length, perPage, page, p=>{pagState.t4.page=p;renderT4();});
+
+  const epfEntries = Object.entries(epfMap)
+    .map(([epf, jobs]) => {
+      const filteredJobs = sJob
+        ? Object.fromEntries(Object.entries(jobs).filter(([j]) => j.toLowerCase().includes(sJob)))
+        : jobs;
+      const total = Object.values(filteredJobs).reduce((a,b)=>a+b,0);
+      return { epf, jobs:filteredJobs, total };
+    })
+    .filter(e => Object.keys(e.jobs).length > 0)
+    .sort((a,b) => b.total - a.total);
+
+  const {page,perPage} = pagState.t4;
+  const slice = epfEntries.slice((page-1)*perPage, page*perPage);
+
+  const body = document.getElementById('bodyT4');
+  body.innerHTML = !slice.length ? noData(2) : slice.map(({epf,jobs,total}) => {
+    const hdr  = `<tr class="grp-hdr">
+      <td style="color:var(--purple-dark);font-weight:700;font-family:'DM Sans';">👷 EPF: ${epf}</td>
+      <td class="r" style="color:var(--purple-dark);font-weight:700;font-family:'DM Sans';">${total.toFixed(1)}</td>
+    </tr>`;
+    const subs = Object.entries(jobs)
+      .sort((a,b)=>b[1]-a[1])
+      .map(([job,cons]) =>
+        `<tr class="sub-row">
+          <td style="padding-left:20px;color:#111;font-weight:400;font-family:'DM Mono';font-size:11px;">↳ ${job}</td>
+          <td class="r" style="color:#111;font-weight:400;">${cons.toFixed(1)}</td>
+        </tr>`
+      ).join('');
+    return hdr + subs;
+  }).join('');
+
+  buildPagination('pagT4','infoT4',epfEntries.length,perPage,page,p=>{pagState.t4.page=p;renderT4();});
 }
 
 function noData(cols) {
