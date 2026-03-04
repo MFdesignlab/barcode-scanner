@@ -1623,8 +1623,8 @@ function renderT2() {
           : `<span style="color:var(--grey-500);font-size:11px;">—</span>`;
         const balColor  = r.balanceKG <= 0.0 ? 'var(--red)' : (r.balanceKG < 5.0 ? 'var(--amber)' : 'var(--green)');
         return `<tr>
-          <td style="font-family:'DM Mono';font-size:11px;">${r.allocDate}</td>
-          <td style="font-family:'DM Mono';font-size:11px;">${r.barcode}</td>
+          <td style="font-size:11px; color:#000000;">${r.allocDate}</td>
+          <td style="font-family:'DM Mono';font-size:12px;">${r.barcode}</td>
           <td class="r num-cell">${r.allocCapKG.toFixed(1)}</td>
           <td class="r num-cell">${r.consumptionKG.toFixed(1)}</td>
           <td class="r" style="font-weight:560;color:${balColor};font-family:'DM Mono';font-size:12px;">${r.balanceKG.toFixed(1)}</td>
