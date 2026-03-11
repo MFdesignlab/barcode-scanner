@@ -209,7 +209,7 @@
   }
 
   .fp-group { display: flex; flex-direction: column; gap: 5px; }
-  .fp-label { font-size: 10px; font-weight: 700; color: var(--black-500); text-transform: uppercase; letter-spacing: .8px; }
+  .fp-label { font-size: 10px; font-weight: 700; color: var(--grey-500); text-transform: uppercase; letter-spacing: .8px; }
   .fp-select, .fp-input {
     background: var(--purple-pale);
     border: 1px solid var(--purple-mid);
@@ -474,7 +474,7 @@
   }
   th.r, td.r { text-align:right; }
   td {
-    padding:7px 10px; font-size:12px;
+    padding:7px 10px; font-size:11px;
     color:var(--grey-700);
     border-bottom:1px solid var(--grey-200);
     font-family:'DM sans',monospace;
@@ -676,6 +676,24 @@
     .top-bar-logo { width:32px; height:32px; font-size:16px; }
     .kpi-grid { grid-template-columns:1fr 1fr; }
   }
+
+  .form-reset-btn {
+    width: 100%;
+    background: rgba(124,58,237,.08);
+    color: var(--purple-dark);
+    border: 1.5px solid var(--purple-mid);
+    border-radius: 10px;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-top: 10px;
+  }
+  .form-reset-btn:hover { background: var(--purple-soft); border-color: var(--purple-dark); transform:translateY(-1px); }
+
 </style>
 </head>
 <body>
@@ -894,6 +912,7 @@
               <tr>
                 <th>Allocated Date</th>
                 <th>Cylinder Barcode</th>
+                <th>Gas Type</th>
                 <th class="r">Alloc. Cap. (KG)</th>
                 <th class="r">Consumption (KG)</th>
                 <th class="r">Balance (KG)</th>
@@ -984,8 +1003,24 @@
       </div>
 
       <div class="form-group">
+        <label class="form-label" for="formGasType">Gas Type</label>
+        <select class="form-input" id="formGasType" style="cursor:pointer;">
+          <option value="">— Select Gas Type —</option>
+          <option value="R22">R22</option>
+          <option value="R32">R32</option>
+          <option value="R410A">R410A</option>
+          <option value="R134A">R134A</option>
+        </select>
+      </div>
+
+      <div class="form-group">
         <label class="form-label" for="formCapacity">Cylinder Capacity (KG)</label>
         <input type="number" class="form-input" id="formCapacity" placeholder="e.g. 30" min="0" step="0.1"/>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="formGRN">GRN Date</label>
+        <input type="date" class="form-input" id="formGRN"/>
       </div>
 
       <button class="form-submit-btn" id="formSubmitBtn" onclick="submitCylinderForm()">
@@ -993,7 +1028,11 @@
         <span id="formSubmitText">Save Cylinder Data</span>
       </button>
 
-      <div class="form-status" id="formStatus"></div>
+      <button type="button" class="form-reset-btn" id="formResetBtn" onclick="resetCylinderForm()">
+        🔄 Reset Data
+      </button>
+
+            <div class="form-status" id="formStatus"></div>
     </div>
   </div>
 </div><!-- /page-capacity -->
@@ -1023,8 +1062,8 @@ const PIE_COLORS  = ["#3c096c","#5a189a","#9d4edd","#c77dff","#e0aaff","#3c096c"
 // ============================================================
 // STATE
 // ============================================================
-let allData      = [];   // gas consumption rows (all raw sanitised records)
-let filtered     = [];   // filtered + deduped gas consumption rows
+let allData      = [];   // gas consumption rows
+let filtered     = [];   // filtered gas consumption rows
 let cylinderData = [];   // cylinder capacity table rows
 
 let lineChartObj = null;
@@ -1034,7 +1073,7 @@ const pagState = {
   t1: { page:1, perPage:10 },
   t2: { page:1, perPage:10 },
   t3: { page:1, perPage:18 },
-  t4: { page:1, perPage:7  },
+  t4: { page:1, perPage:7  },  // 7 records for technician table
 };
 
 // ============================================================
@@ -1062,6 +1101,8 @@ function showPage(name) {
     closeFilterPanel();
     const today = new Date().toISOString().slice(0,10);
     document.getElementById('formAllocDate').value = today;
+    // Reset status element fully
+    document.getElementById('formGasType').value = '';
     const st = document.getElementById('formStatus');
     st.className     = 'form-status';
     st.style.display = 'none';
@@ -1099,29 +1140,43 @@ function closeFilterPanel() {
 async function submitCylinderForm() {
   const allocDate   = document.getElementById('formAllocDate').value;
   const barcode     = document.getElementById('formBarcode').value.trim();
+  const gasType     = document.getElementById('formGasType').value;
   const capacityRaw = document.getElementById('formCapacity').value.trim();
   const capacityNum = parseFloat(capacityRaw);
+  const grnDate     = document.getElementById('formGRN').value;
 
+  // Always reset status before validation
   const st = document.getElementById('formStatus');
   st.className     = 'form-status';
   st.style.display = 'none';
   st.textContent   = '';
 
-  if (!allocDate) { showFormStatus('error', '⚠️ Please select an Allocation Date.'); return; }
-  if (!barcode)   { showFormStatus('error', '⚠️ Please enter the Cylinder Barcode.'); return; }
+  if (!allocDate) {
+    showFormStatus('error', '⚠️ Please select an Allocation Date.');
+    return;
+  }
+  if (!barcode) {
+    showFormStatus('error', '⚠️ Please enter the Cylinder Barcode.');
+    return;
+  }
+  if (!gasType) { showFormStatus('error', '⚠️ Please select a Gas Type.'); return; }
   if (!capacityRaw || isNaN(capacityNum) || capacityNum <= 0) {
     showFormStatus('error', '⚠️ Please enter a valid Cylinder Capacity (KG).');
     return;
   }
+  if (!grnDate) { showFormStatus('error', '⚠️ Please select a GRN Date.'); return; }
 
   const btn = document.getElementById('formSubmitBtn');
   btn.disabled = true;
   document.getElementById('formSubmitIcon').textContent = '⏳';
   document.getElementById('formSubmitText').textContent = 'Saving…';
 
+  // Payload keys must match what Power Automate expects
   const payload = {
     "Allocated_Date":           allocDate,
+    "GRN_Date":                 grnDate,
     "Cylinder_Barcode":         barcode,
+    "Gas_Type":                 gasType,
     "Allocated_Capacity (KG)":  capacityNum
   };
 
@@ -1132,10 +1187,13 @@ async function submitCylinderForm() {
       body:    JSON.stringify(payload)
     });
 
+    // Power Automate instant flows return 202 Accepted on success
     if (res.ok || res.status === 202) {
       showFormStatus('success', '✅ Cylinder data saved successfully!');
-      document.getElementById('formBarcode').value  = '';
-      document.getElementById('formCapacity').value = '';
+      document.getElementById('formBarcode').value   = '';
+      document.getElementById('formGasType').value  = '';
+      document.getElementById('formCapacity').value  = '';
+      document.getElementById('formGRN').value       = '';
       document.getElementById('formAllocDate').value = new Date().toISOString().slice(0,10);
       loadCylinderData();
     } else {
@@ -1152,6 +1210,19 @@ async function submitCylinderForm() {
   document.getElementById('formSubmitText').textContent = 'Save Cylinder Data';
 }
 
+
+function resetCylinderForm() {
+  document.getElementById('formAllocDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('formBarcode').value   = '';
+  document.getElementById('formGasType').value  = '';
+  document.getElementById('formCapacity').value  = '';
+  document.getElementById('formGRN').value       = '';
+  const st = document.getElementById('formStatus');
+  st.className     = 'form-status';
+  st.style.display = 'none';
+  st.textContent   = '';
+}
+
 function showFormStatus(type, msg) {
   const el = document.getElementById('formStatus');
   el.className     = 'form-status ' + type;
@@ -1160,7 +1231,7 @@ function showFormStatus(type, msg) {
 }
 
 // ============================================================
-// FETCH — Gas Consumption
+// FETCH — Gas Consumption (existing flow, unchanged)
 // ============================================================
 async function loadData() {
   showLoading(true);
@@ -1201,7 +1272,7 @@ async function loadData() {
 }
 
 // ============================================================
-// FETCH — Cylinder Capacity Table
+// FETCH — Cylinder Capacity Table (separate GET flow)
 // ============================================================
 async function loadCylinderData() {
   try {
@@ -1224,6 +1295,7 @@ async function loadCylinderData() {
 
 // ============================================================
 // SANITISE — Cylinder Capacity Table
+// Handles both underscore and space key variants from Power Automate
 // ============================================================
 function sanitiseCylinderData(rows) {
   return rows
@@ -1240,6 +1312,7 @@ function sanitiseCylinderData(rows) {
       return {
         allocDate:     d,
         barcode:       String(r['Cylinder_Barcode'] || r['Cylinder Barcode'] || '').trim(),
+        gasType:       String(r['Gas_Type'] || r['Gas Type'] || '').trim() || '—',
         allocCapKG:    parseFloat(r['Allocated_Capacity (KG)'] || r['Allocated Capacity (KG)'] || 0) || 0,
         consumptionKG: parseFloat(r['Consumption (KG)'] || 0) || 0,
         balanceKG:     parseFloat(r['Balance (KG)']     || 0) || 0,
@@ -1249,47 +1322,34 @@ function sanitiseCylinderData(rows) {
 }
 
 // ============================================================
-// DAYS USED  ← FIXED
-// ============================================================
-// Source: allData (gas consumption table — JSON_URL)
-// Match:  Gas_Cylinder_Serial (r.serial) vs cylinder barcode, case-insensitive + trimmed
-// Filter: only scan rows where r.date >= allocDate
-// Logic:
-//   • If balanceKG <= 0 (cylinder exhausted):
-//       → calendar days from allocDate to last scan date (inclusive)
-//   • If balanceKG > 0 (cylinder still in use):
-//       → count of distinct Scanned_Date values for this cylinder
-//   • If no matching scan rows found → return null (show "—")
+// DAYS USED
+// Count distinct gas-consumption scan dates for this barcode
+// from allocDate onward, until balance reaches 0.
+// If balance is 0: return inclusive calendar days from allocDate to last scan date.
+// If balance > 0: return count of distinct scan dates so far.
 // ============================================================
 function computeDaysUsed(barcode, allocDate, balanceKG) {
-  const barcodeNorm = barcode.trim().toLowerCase();
-
-  // Search across ALL raw gas consumption data (allData), not filtered
   const matching = allData.filter(r =>
-    r.serial.trim().toLowerCase() === barcodeNorm &&
-    r.date >= allocDate
+    r.serial.toLowerCase() === barcode.toLowerCase() && r.date >= allocDate
   );
-
   if (!matching.length) return null;
 
-  // Collect distinct scan dates and sort ascending
   const distinctDates = [...new Set(matching.map(r => r.date))].sort();
 
   if (balanceKG <= 0) {
-    // Cylinder exhausted — return inclusive calendar days from allocDate to last scan
-    const d1   = new Date(allocDate);
-    const d2   = new Date(distinctDates[distinctDates.length - 1]);
+    // Calendar days from allocation to last usage (inclusive)
+    const d1 = new Date(allocDate);
+    const d2 = new Date(distinctDates[distinctDates.length - 1]);
     const diff = Math.round((d2 - d1) / 86400000);
-    // If last scan is same day as alloc, diff = 0 → 1 day
     return diff >= 0 ? diff + 1 : distinctDates.length;
   }
 
-  // Cylinder still active — return number of distinct days it was scanned/used
+  // Still in use — distinct usage days so far
   return distinctDates.length;
 }
 
 // ============================================================
-// SANITISE — Gas Consumption
+// SANITISE — Gas Consumption (existing, unchanged)
 // ============================================================
 function excelDateToJSDate(serial) {
   if (!serial) return null;
@@ -1604,7 +1664,8 @@ function renderT1() {
 
 // ============================================================
 // TABLE 2 — Cylinder Consumption
-// Data from cylinder capacity table; Days Used from allData via computeDaysUsed()
+// Sourced entirely from cylinder capacity excel table (CYLINDER_GET_URL)
+// Extra column: Days Used (computed from gas consumption table via barcode match)
 // ============================================================
 function renderT2() {
   const s = document.getElementById('searchT2').value.toLowerCase();
@@ -1620,18 +1681,19 @@ function renderT2() {
         const daysUsed  = computeDaysUsed(r.barcode, r.allocDate, r.balanceKG);
         const daysCell  = daysUsed !== null
           ? `<span style="font-weight:600;color:var(--purple-dark);font-family:'DM Mono';font-size:11px;">${daysUsed}</span>`
-          : `<span style="color:var(--grey-500);font-size:11px;">—</span>`;
-        const balColor  = r.balanceKG <= 0.0 ? 'var(--red)' : (r.balanceKG < 5.0 ? 'var(--amber)' : 'var(--green)');
+          : `<span style="color:var(--grey-500);font-size:1px;">—</span>`;
+        const balColor  = r.balanceKG <= 0 ? 'var(--red)' : (r.balanceKG < 5 ? 'var(--amber)' : 'var(--green)');
         return `<tr>
-          <td style="font-size:11px; color:#000000;">${r.allocDate}</td>
-          <td style="font-family:'DM Mono';font-size:12px;">${r.barcode}</td>
+          <td style="font-family:'DM Mono';font-size:11px;">${r.allocDate}</td>
+          <td style="font-family:'DM Mono';font-size:11px;">${r.barcode}</td>
+          <td style="font-size:11px;font-weight:500;color:var(--grey);">${r.gasType}</td>
           <td class="r num-cell">${r.allocCapKG.toFixed(1)}</td>
           <td class="r num-cell">${r.consumptionKG.toFixed(1)}</td>
-          <td class="r" style="font-weight:560;color:${balColor};font-family:'DM Mono';font-size:12px;">${r.balanceKG.toFixed(1)}</td>
+          <td class="r" style="font-weight:550;color:${balColor};font-family:'DM Mono';font-size:12px;">${r.balanceKG.toFixed(1)}</td>
           <td class="r">${daysCell}</td>
         </tr>`;
       }).join('')
-    : noData(6);
+    : noData(7);
 
   buildPagination('pagT2','infoT2',rows.length,perPage,page,p=>{pagState.t2.page=p;renderT2();});
 }
@@ -1692,6 +1754,7 @@ function renderT3() {
 
 // ============================================================
 // TABLE 4 — Technician Consumption
+// Drilldown EPF → Jobs | 7 per page | search by EPF + Job
 // ============================================================
 function renderT4() {
   const sEpf = document.getElementById('searchT4').value.toLowerCase();
@@ -1707,6 +1770,7 @@ function renderT4() {
 
   const epfEntries = Object.entries(epfMap)
     .map(([epf, jobs]) => {
+      // When job search active, only keep matching jobs
       const filteredJobs = sJob
         ? Object.fromEntries(Object.entries(jobs).filter(([j]) => j.toLowerCase().includes(sJob)))
         : jobs;
