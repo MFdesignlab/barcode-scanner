@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Abans Service Center – Queue Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { width: 100%; height: 100%; overflow: hidden; font-family: 'Poppins', sans-serif; background: #f0f0f0; }
+:root {
+  --brand:      #781D7D;
+  --brand-dark: #5B1F6E;
+  --brand-light:#A855C8;
+  --brand-pale: #F3E8FF;
+  --border:     #E5D5F5;
+  --bg:         #FAFAFA;
+  --surface:    #FFFFFF;
+  --text:       #1a0a2e;
+  --sub:        #6b7280;
+}
+
+/* ── SCREEN SHELL ── */
+.screen-wrap { position:absolute; inset:0; display:flex; flex-direction:column; overflow:hidden; }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeIn  { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
+@keyframes scaleIn { from{opacity:0;transform:scale(.88)} to{opacity:1;transform:scale(1)} }
+@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+@keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:.5} }
+.anim-fade  { animation:fadeIn  .4s ease both; }
+.anim-scale { animation:scaleIn .5s cubic-bezier(.34,1.56,.64,1) both; }
+.anim-pulse { animation:pulse 2.2s ease-in-out infinite; }
+
+/* ════════════ LANGUAGE SCREEN ════════════ */
+.lang-screen {
+  background:#ffffff; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:0; padding:48px; height:100%;
+}
+.lang-welcome { font-size:18px; font-weight:500; color:#888; letter-spacing:1px; margin-bottom:4px; }
+.lang-logo { font-size:72px; font-weight:900; color:#781D7D; letter-spacing:-2px; line-height:1; }
+.lang-divider { width:80px; height:3px; background:linear-gradient(90deg,transparent,var(--brand),transparent); margin:24px 0 16px; border-radius:2px; }
+.lang-tagline { font-size:15px; color:#777; font-weight:400; text-align:center; margin-bottom:8px; }
+.lang-cards { display:flex; gap:24px; margin-top:36px; }
+.lang-card {
+  width:220px; border-radius:28px; background:#faf5ff; border:2px solid var(--border);
+  padding:40px 24px; display:flex; flex-direction:column; align-items:center; gap:14px;
+  cursor:pointer; transition:all .25s ease;
+}
+.lang-card:hover { background:var(--brand-pale); border-color:var(--brand); transform:translateY(-6px); box-shadow:0 20px 48px rgba(120,29,125,.18); }
+.lang-card:active { transform:scale(.97); }
+.lang-name { font-size:22px; font-weight:700; color:var(--text); }
+.lang-native { font-size:14px; color:var(--sub); }
+
+/* ════════════ GLOBAL HEADER ════════════ */
+.app-header {
+  background:var(--brand); padding:0 40px; height:72px; min-height:72px;
+  display:flex; align-items:center; justify-content:space-between;
+  box-shadow:0 4px 24px rgba(0,0,0,.2); flex-shrink:0;
+}
+.header-brand { display:flex; align-items:center; gap:14px; }
+.header-logo  { font-size:32px; font-weight:900; color:#fff; letter-spacing:-.5px; }
+.header-sep   { width:1px; height:32px; background:rgba(255,255,255,.25); }
+.header-title { font-size:16px; font-weight:500; color:rgba(255,255,255,.85); }
+.header-right { display:flex; align-items:center; gap:20px; }
+.header-lang-btn {
+  display:flex; align-items:center; gap:6px;
+  background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.25);
+  border-radius:100px; padding:8px 18px; color:rgba(255,255,255,.9);
+  font-size:13px; font-weight:600; cursor:pointer; font-family:'Poppins',sans-serif; transition:background .2s;
+}
+.header-lang-btn:hover { background:rgba(255,255,255,.25); }
+.header-time { font-size:15px; color:rgba(255,255,255,.7); font-weight:500; }
+
+/* ════════════ WELCOME SCREEN ════════════ */
+.welcome-body { flex:1; overflow-y:auto; background:var(--bg); display:flex; flex-direction:column; }
+.welcome-hero {
+  background:linear-gradient(135deg,var(--brand-dark),var(--brand));
+  padding:52px 60px 60px; display:flex; align-items:center; justify-content:space-between;
+  position:relative; overflow:hidden; flex-shrink:0;
+}
+.welcome-hero::after { content:''; position:absolute; right:-80px; top:-80px; width:340px; height:340px; border-radius:50%; background:rgba(255,255,255,.05); pointer-events:none; }
+.hero-text { z-index:1; }
+.hero-greeting { font-size:15px; color:rgba(255,255,255,.6); font-weight:500; letter-spacing:1px; }
+.hero-title { font-size:44px; font-weight:800; color:#fff; line-height:1.1; margin-top:6px; }
+.hero-desc  { font-size:15px; color:rgba(255,255,255,.65); margin-top:12px; max-width:420px; line-height:1.6; }
+.hero-badge { background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2); border-radius:16px; padding:20px 28px; text-align:center; z-index:1; flex-shrink:0; }
+.hero-badge-val { font-size:13px; color:rgba(255,255,255,.6); font-weight:500; letter-spacing:1px; }
+.hero-badge-num { font-size:52px; font-weight:800; color:#fff; line-height:1; }
+.hero-badge-sub { font-size:12px; color:rgba(255,255,255,.45); margin-top:2px; }
+.services-area { flex:1; padding:36px 48px 40px; }
+.services-area-label { font-size:12px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:var(--sub); margin-bottom:20px; }
+.services-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+.svc-card {
+  background:var(--surface); border-radius:20px; padding:28px; cursor:pointer;
+  border:2px solid var(--border); transition:all .22s ease; display:flex; flex-direction:column; gap:10px;
+  box-shadow:0 2px 12px rgba(0,0,0,.05);
+}
+.svc-card:hover { border-color:var(--brand); transform:translateY(-3px); box-shadow:0 12px 32px rgba(120,29,125,.15); }
+.svc-card:active { transform:scale(.98); }
+.svc-card.featured {
+  grid-column: 1 / -1;
+  background: linear-gradient(120deg, #FF6B35 0%, #C724B1 45%, #781D7D 100%);
+  border-color: rgba(255,255,255,.3);
+  padding: 36px 40px;
+  box-shadow: 0 16px 48px rgba(199,36,177,.4), 0 4px 16px rgba(120,29,125,.3);
+  position: relative; overflow: hidden;
+}
+.svc-card.featured::before {
+  content:''; position:absolute; top:-50%; right:-10%;
+  width:60%; height:200%;
+  background: radial-gradient(circle, rgba(255,255,255,.18) 0%, transparent 60%);
+  pointer-events:none;
+}
+.svc-card.featured::after {
+  content:''; position:absolute; bottom:-40%; left:-5%;
+  width:50%; height:180%;
+  background: radial-gradient(circle, rgba(255,180,90,.22) 0%, transparent 65%);
+  pointer-events:none;
+}
+.svc-card.featured > * { position:relative; z-index:1; }
+.svc-card.featured:hover { transform:translateY(-4px); box-shadow:0 24px 60px rgba(199,36,177,.55), 0 6px 20px rgba(255,107,53,.35); }
+.svc-card.featured .svc-title { font-size:32px; color:#fff; }
+.svc-card.featured .svc-desc  { font-size:16px; color:rgba(255,255,255,.92); max-width:75%; }
+.svc-card.featured .svc-arrow { color:#fff; font-size:32px; }
+.svc-card.featured .svc-waiting { background:rgba(255,255,255,.2); color:#fff; }
+.svc-title  { font-size:18px; font-weight:700; color:var(--text); }
+.svc-desc   { font-size:13px; color:var(--sub); line-height:1.5; }
+.svc-footer { display:flex; align-items:center; justify-content:space-between; margin-top:4px; }
+.svc-waiting { font-size:12px; font-weight:600; color:var(--brand); background:var(--brand-pale); padding:4px 10px; border-radius:100px; }
+.svc-arrow  { color:var(--brand); font-size:22px; font-weight:300; }
+
+/* ════════════ CUSTOMER DETAILS ════════════ */
+.details-screen { flex:1; display:flex; flex-direction:column; background:var(--bg); overflow:hidden; }
+.details-top { padding:32px 48px 28px; background:var(--surface); border-bottom:1px solid var(--border); flex-shrink:0; }
+.back-btn {
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--brand-pale); border:none; border-radius:100px;
+  padding:8px 18px; font-size:14px; font-weight:600; color:var(--brand);
+  cursor:pointer; font-family:'Poppins',sans-serif; transition:background .2s; margin-bottom:16px;
+}
+.back-btn:hover { background:#e8d5f8; }
+.details-heading { font-size:28px; font-weight:800; color:var(--text); }
+.details-sub     { font-size:14px; color:var(--sub); margin-top:4px; }
+.service-chip    { display:inline-flex; align-items:center; gap:6px; background:var(--brand); color:#fff; border-radius:100px; padding:4px 14px; font-size:12px; font-weight:600; margin-top:10px; }
+.details-content { flex:1; overflow:hidden; display:flex; padding:24px 48px 16px; gap:40px; }
+.form-col  { flex:1; display:flex; flex-direction:column; gap:20px; }
+.form-group { display:flex; flex-direction:column; gap:6px; }
+.form-label { font-size:12px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--sub); }
+.form-input {
+  border:2px solid var(--border); border-radius:14px; padding:16px 20px;
+  font-size:18px; font-family:'Poppins',sans-serif; color:var(--text);
+  background:#fff; outline:none; transition:border-color .2s; width:100%;
+}
+.form-input:focus  { border-color:var(--brand); }
+.form-input.has-val { border-color:var(--brand); background:#fdf9ff; }
+.form-input::placeholder { color:#c4b5d6; font-size:15px; }
+.form-input[readonly] { cursor:pointer; }
+.generate-btn {
+  background:var(--brand); color:#fff; border:none; border-radius:16px;
+  padding:20px; font-size:18px; font-weight:700; font-family:'Poppins',sans-serif;
+  cursor:pointer; width:100%; transition:all .2s; box-shadow:0 6px 24px rgba(120,29,125,.35); margin-top:8px;
+}
+.generate-btn:hover { background:var(--brand-dark); transform:translateY(-2px); }
+.generate-btn:active { transform:scale(.98); }
+.generate-btn:disabled { opacity:.45; cursor:not-allowed; transform:none; box-shadow:none; }
+
+/* ════════════ VIRTUAL KEYBOARD ════════════ */
+.vkb-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.25); z-index:400; backdrop-filter:blur(2px); }
+.vkb-wrap {
+  position:fixed; bottom:0; left:0; right:0; z-index:500;
+  background:#1e1a2e; border-top:1px solid rgba(255,255,255,.1);
+  border-radius:24px 24px 0 0; box-shadow:0 -16px 48px rgba(0,0,0,.4);
+  padding:16px 20px 28px; animation:slideUp .28s cubic-bezier(.34,1,.64,1) both;
+}
+.vkb-wrap.numpad {
+  left:auto; right:24px; bottom:24px; width:340px;
+  border-radius:20px;
+  padding:0; overflow:hidden;
+  box-shadow:0 24px 60px rgba(0,0,0,.5);
+}
+.vkb-numpad-display {
+  background:#5a5a5a; padding:28px 20px; min-height:90px;
+  display:flex; flex-direction:column; justify-content:center; align-items:flex-end;
+}
+.vkb-numpad-label { font-size:11px; color:rgba(255,255,255,.55); letter-spacing:1.5px; text-transform:uppercase; font-weight:600; }
+.vkb-numpad-value { font-size:28px; color:#fff; font-weight:600; letter-spacing:1px; min-height:36px; margin-top:4px; }
+.vkb-numpad-grid {
+  display:grid; grid-template-columns:repeat(3,1fr);
+  background:#1e1a2e; gap:1px; padding:1px;
+}
+.vkb-numpad-key {
+  background:#3d3558; border:none; cursor:pointer; user-select:none;
+  padding:18px 0; font-family:'Poppins',sans-serif; color:#fff;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  transition:background .12s;
+}
+.vkb-numpad-key:hover { background:#4a4170; }
+.vkb-numpad-key:active { background:var(--brand); }
+.vkb-numpad-num { font-size:28px; font-weight:400; line-height:1; }
+.vkb-numpad-sub { font-size:10px; letter-spacing:1.5px; color:rgba(255,255,255,.5); font-weight:500; }
+.vkb-numpad-key.dark { background:#2a2540; }
+.vkb-numpad-key.dark:hover { background:#3d3558; }
+.vkb-numpad-done {
+  background:var(--brand); color:#fff; border:none; cursor:pointer;
+  padding:14px; font-size:13px; font-weight:700; font-family:'Poppins',sans-serif;
+  letter-spacing:1px; text-transform:uppercase;
+}
+.vkb-numpad-done:hover { background:var(--brand-dark); }
+.vkb-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; padding:0 4px; }
+.vkb-field-label { font-size:13px; color:rgba(255,255,255,.5); font-weight:600; }
+.vkb-value { font-size:18px; color:#fff; font-weight:600; flex:1; text-align:center; letter-spacing:.5px; }
+.vkb-done-btn { background:var(--brand); color:#fff; border:none; border-radius:12px; padding:10px 24px; font-size:14px; font-weight:700; font-family:'Poppins',sans-serif; cursor:pointer; transition:background .2s; }
+.vkb-done-btn:hover { background:var(--brand-dark); }
+.vkb-rows { display:flex; flex-direction:column; gap:8px; }
+.vkb-row  { display:flex; justify-content:center; gap:6px; }
+.vkb-key {
+  height:52px; border-radius:10px; border:none; cursor:pointer;
+  font-family:'Poppins',sans-serif; font-size:16px; font-weight:500;
+  background:#2e2845; color:#fff; transition:all .1s; user-select:none;
+  display:flex; align-items:center; justify-content:center; min-width:52px; flex:1;
+}
+.vkb-key:hover  { background:#3d3558; }
+.vkb-key:active { background:var(--brand); transform:scale(.94); }
+.vkb-key.wide-1-5 { flex:1.5; }
+.vkb-key.wide-2   { flex:2; }
+.vkb-key.wide-5   { flex:5; }
+.vkb-key.action   { background:#3d2860; color:#c084fc; font-size:13px; font-weight:700; }
+.vkb-key.action:hover  { background:#4a3370; }
+.vkb-key.action:active { background:var(--brand); color:#fff; }
+.vkb-key.backspace { background:#3d2860; }
+.vkb-key.caps-on   { background:var(--brand) !important; color:#fff !important; }
+.vkb-mode-bar { display:flex; justify-content:center; gap:8px; margin-bottom:10px; }
+.vkb-mode-btn { padding:6px 20px; border-radius:100px; border:1px solid rgba(255,255,255,.15); background:transparent; color:rgba(255,255,255,.5); font-size:12px; font-weight:600; cursor:pointer; font-family:'Poppins',sans-serif; transition:all .2s; }
+.vkb-mode-btn.active { background:var(--brand); border-color:var(--brand); color:#fff; }
+
+/* ════════════ TOKEN SCREEN ════════════ */
+.token-screen { flex:1; background:#ffffff; display:flex; align-items:center; justify-content:center; padding:48px; }
+.token-content { display:flex; flex-direction:column; align-items:center; gap:0; max-width:720px; width:100%; }
+.token-check { width:88px; height:88px; border-radius:50%; background:var(--brand-pale); border:2px solid var(--border); display:flex; align-items:center; justify-content:center; margin-bottom:20px; }
+.token-check svg { width:44px; height:44px; stroke:var(--brand); fill:none; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
+.token-gen-label { font-size:14px; letter-spacing:2px; text-transform:uppercase; color:var(--sub); font-weight:600; }
+.token-svc-name  { font-size:22px; font-weight:700; color:var(--text); margin-top:6px; margin-bottom:32px; }
+.token-card-big  { background:var(--brand-pale); border:2px solid var(--border); border-radius:36px; padding:48px 80px; text-align:center; width:100%; }
+.token-card-label { font-size:14px; letter-spacing:3px; text-transform:uppercase; color:var(--sub); }
+.token-num   { font-size:120px; font-weight:900; color:var(--brand); line-height:1; margin:8px 0; }
+.token-card-sub { font-size:15px; color:var(--sub); }
+.token-stats { display:flex; gap:16px; width:100%; margin-top:24px; }
+.token-stat  { flex:1; background:var(--brand-pale); border:1px solid var(--border); border-radius:18px; padding:18px; text-align:center; }
+.token-stat-label { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--sub); }
+.token-stat-val   { font-size:20px; font-weight:700; color:var(--text); margin-top:4px; }
+.token-msg   { font-size:15px; color:var(--sub); text-align:center; line-height:1.7; margin-top:24px; }
+.token-actions-row { display:flex; gap:16px; width:100%; margin-top:32px; }
+.btn-primary { flex:1; padding:20px; border-radius:16px; background:var(--brand); color:#fff; border:none; font-size:16px; font-weight:700; font-family:'Poppins',sans-serif; cursor:pointer; transition:all .2s; box-shadow:0 6px 20px rgba(120,29,125,.35); }
+.btn-primary:hover { background:var(--brand-dark); transform:translateY(-2px); }
+.btn-ghost   { flex:1; padding:20px; border-radius:16px; background:#f0f0f0; color:var(--text); border:1px solid var(--border); font-size:16px; font-weight:600; font-family:'Poppins',sans-serif; cursor:pointer; transition:all .2s; }
+.btn-ghost:hover { background:#e0e0e0; }
+
+/* ════════════ TV SCREEN ════════════ */
+.tv-screen { flex:1; background:#0a0814; display:flex; flex-direction:column; overflow:hidden; }
+.tv-body   { flex:1; display:flex; gap:0; overflow:hidden; }
+.tv-left   { width:420px; min-width:420px; display:flex; flex-direction:column; border-right:1px solid rgba(255,255,255,.06); }
+.tv-now-serving { background:var(--brand); padding:32px 32px 28px; text-align:center; flex-shrink:0; }
+.tv-ns-label  { font-size:11px; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,.65); font-weight:600; }
+.tv-ns-num    { font-size:100px; font-weight:900; color:#fff; line-height:.9; margin:8px 0; }
+.tv-ns-sub    { font-size:14px; color:rgba(255,255,255,.7); font-weight:500; }
+.tv-ns-counter{ font-size:12px; color:rgba(255,255,255,.45); margin-top:4px; }
+.tv-queue-list { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; }
+.tv-queue-header { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.3); padding:4px 8px; font-weight:600; }
+.tv-qitem { background:#151225; border:1px solid rgba(255,255,255,.07); border-radius:14px; padding:16px 20px; display:flex; align-items:center; justify-content:space-between; }
+.tv-qitem-num     { font-size:36px; font-weight:800; color:#fff; }
+.tv-qitem-right   { text-align:right; }
+.tv-qitem-counter { font-size:13px; color:rgba(255,255,255,.55); font-weight:500; }
+.tv-qitem-type    { font-size:11px; color:rgba(255,255,255,.28); margin-top:2px; }
+.tv-right  { flex:1; display:flex; flex-direction:column; padding:16px; gap:12px; overflow:hidden; }
+.tv-media-header { display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.tv-media-title  { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.3); font-weight:600; }
+.tv-media-tabs   { display:flex; gap:6px; }
+.tv-tab { padding:7px 16px; border-radius:100px; border:1px solid rgba(255,255,255,.12); background:transparent; color:rgba(255,255,255,.45); font-size:12px; font-weight:600; cursor:pointer; font-family:'Poppins',sans-serif; transition:all .2s; }
+.tv-tab.active { background:var(--brand); border-color:var(--brand); color:#fff; }
+.tv-tab:hover:not(.active) { border-color:rgba(255,255,255,.3); color:rgba(255,255,255,.75); }
+.tv-media-frame { flex:1; background:#0d0b1e; border-radius:20px; border:1px solid rgba(255,255,255,.07); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; position:relative; overflow:hidden; }
+.tv-media-icon svg { width:52px; height:52px; stroke:rgba(255,255,255,.2); fill:none; stroke-width:1.5; }
+.tv-media-label-big { font-size:16px; color:rgba(255,255,255,.25); font-weight:600; }
+.tv-media-hint { font-size:12px; color:rgba(255,255,255,.15); text-align:center; line-height:1.6; }
+.tv-url-input-wrap { position:absolute; bottom:20px; left:20px; right:20px; display:flex; gap:8px; }
+.tv-url-input { flex:1; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:10px 14px; color:#fff; font-family:'Poppins',sans-serif; font-size:13px; outline:none; }
+.tv-url-input::placeholder { color:rgba(255,255,255,.3); }
+.tv-url-btn { background:var(--brand); color:#fff; border:none; border-radius:10px; padding:10px 20px; font-size:12px; font-weight:700; font-family:'Poppins',sans-serif; cursor:pointer; }
+.tv-footer-bar { background:#0f0b1e; border-top:1px solid rgba(255,255,255,.05); padding:12px 32px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.tv-contact { font-size:12px; color:rgba(255,255,255,.35); display:flex; gap:28px; }
+.tv-contact span { color:rgba(255,255,255,.6); }
+
+/* ════════════ TWEAKS ════════════ */
+.tweaks-panel { position:fixed; bottom:20px; right:20px; z-index:600; background:#1e1a2e; border:1px solid rgba(255,255,255,.12); border-radius:20px; padding:20px; width:260px; box-shadow:0 20px 60px rgba(0,0,0,.5); display:none; flex-direction:column; gap:16px; }
+.tweaks-panel.visible { display:flex; }
+.tweaks-title { font-size:14px; font-weight:700; color:#fff; }
+.tweak-row { display:flex; flex-direction:column; gap:5px; }
+.tweak-row-label { font-size:11px; color:rgba(255,255,255,.45); font-weight:600; letter-spacing:.5px; }
+.tweak-sel { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:10px; padding:9px 13px; color:#fff; font-family:'Poppins',sans-serif; font-size:13px; outline:none; width:100%; cursor:pointer; }
+.tweak-toggle-row { display:flex; align-items:center; justify-content:space-between; }
+.tog { width:42px; height:24px; border-radius:100px; cursor:pointer; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.15); position:relative; transition:background .2s; }
+.tog.on { background:var(--brand); border-color:var(--brand); }
+.tog::after { content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:#fff; transition:transform .2s; }
+.tog.on::after { transform:translateX(18px); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div class="tweaks-panel" id="tweaks-panel">
+  <div class="tweaks-title">Tweaks</div>
+  <div class="tweak-row">
+    <div class="tweak-row-label">Language</div>
+    <select class="tweak-sel" id="tw-lang" onchange="applyTweak('lang',this.value)">
+      <option value="en">English</option>
+      <option value="si">Sinhala</option>
+      <option value="ta">Tamil</option>
+    </select>
+  </div>
+  <div class="tweak-row">
+    <div class="tweak-row-label">Show Waiting Counts</div>
+    <div class="tweak-toggle-row">
+      <span style="font-size:12px;color:rgba(255,255,255,.5)">On service cards</span>
+      <div class="tog on" id="tw-tog-count" onclick="applyToggle('showCount','tw-tog-count')"></div>
+    </div>
+  </div>
+  <div class="tweak-row">
+    <div class="tweak-row-label">Jump to Screen</div>
+    <select class="tweak-sel" id="tw-screen" onchange="applyTweak('screen',this.value)">
+      <option value="lang">Language Select</option>
+      <option value="welcome">Welcome</option>
+      <option value="details">Customer Details</option>
+      <option value="token">Token</option>
+      <option value="tv">TV Display</option>
+    </select>
+  </div>
+</div>
+
+<script type="text/babel">
+
+
+const { useState, useEffect } = React;
+
+/* ── STRINGS ── */
+const S = {
+  en: {
+    centerName: "Abans Service Center",
+    tagline: "Trusted after-sales support for home & commercial appliances",
+    selectService: "Select a Service",
+    tokensToday: "Tokens Today",
+    services: [
+    { name: "Repair as You wait", desc: "For ‘Small Appliance’ repairs, hand over your item at the Quick Service Counter for faster service.", featured: true },
+    { name: "Repair Inquiry", desc: "Warranty & out-of-warranty repair service" },
+    { name: "Product Pick-up", desc: "Collect your repaired appliance" },
+    { name: "Spare Part Sales", desc: "Purchase genuine spare parts" },
+    { name: "Payments", desc: "Make payments for services & repairs" },
+    { name: "A/C Service Agreement", desc: "New & renewal of A/C service agreements" },
+    { name: "Complaints", desc: "Lodge a complaint or escalate an issue", noCount: true },
+    { name: "General Inquiry", desc: "Questions, feedback & support" }],
+
+    waiting: "waiting",
+    detailsTitle: "Customer Details",
+    detailsSubtitle: "Please enter your information to generate a token",
+    back: "← Back",
+    mobileNo: "Mobile Number", mobilePH: "07X XXX XXXX",
+    fullName: "Full Name", namePH: "Enter your full name",
+    jobNo: "Job Number (Optional)", jobPH: "e.g. HUHACA010126W0000",
+    generate: "Generate My Token",
+    tokenReady: "Token Generated!",
+    yourToken: "Your Token Number",
+    estWait: "Est. Wait", ahead: "People Ahead", counter: "Counter",
+    proceedMsg: "Please proceed to the waiting area.",
+    thankYou: "Thank you for visiting Abans Service Center.",
+    print: "🖨  Print Token", home: "Return to Home",
+    nowServing: "Now Serving", upNext: "Up Next", media: "Media Display"
+  },
+  si: {
+    centerName: "අබාන්ස් සේවා මධ්‍යස්ථානය",
+    tagline: "ගෘහ හා වාණිජ උපකරණ සඳහා විශ්වාසනීය සේවාව",
+    selectService: "සේවාවක් තෝරන්න",
+    tokensToday: "අද ටෝකන්",
+    services: [
+    { name: "රැඳී සිට අලුත්වැඩියාව", desc: "කුඩා උපකරණ අලුත්වැඩියාව සඳහා, ඉක්මන් සේවා කවුන්ටරයේ භාරදී ඉක්මන් සේවාව ලබාගන්න.", featured: true },
+    { name: "අලුත්වැඩියා විමසීම", desc: "වගකීම් හා වගකීමෙන් බාහිර අලුත්වැඩියාව" },
+    { name: "භාණ්ඩ බාර ගැනීම", desc: "අලුත්වැඩියා කළ උපකරණය ලබාගන්න" },
+    { name: "අමතර කොටස් අලෙවිය", desc: "සැබෑ අමතර කොටස් මිලදී ගැනීම" },
+    { name: "ගෙවීම්", desc: "සේවා හා අලුත්වැඩියා ගෙවීම් කරන්න" },
+    { name: "A/C සේවා ගිවිසුම", desc: "නව සහ අලුත් කිරීමේ A/C සේවා ගිවිසුම්" },
+    { name: "පැමිණිලි", desc: "පැමිණිල්ලක් ඉදිරිපත් කිරීම හෝ ගැටලුවක් උත්සන්න කිරීම", noCount: true },
+    { name: "සාමාන්‍ය විමසීම", desc: "ප්‍රශ්න, ප්‍රතිපෝෂණ හා සහාය" }],
+
+    waiting: "රැඳී සිටී",
+    detailsTitle: "පාරිභෝගික විස්තර",
+    detailsSubtitle: "ටෝකනයක් ලබා ගැනීමට ඔබේ තොරතුරු ඇතුළු කරන්න",
+    back: "← ආපසු",
+    mobileNo: "ජංගම දුරකථන අංකය", mobilePH: "07X XXX XXXX",
+    fullName: "සම්පූර්ණ නම", namePH: "ඔබේ සම්පූර්ණ නම ඇතුළු කරන්න",
+    jobNo: "කාර්ය අංකය (විකල්ප)", jobPH: "උදා: HUHACA010126W0000",
+    generate: "ටෝකනය ජනනය කරන්න",
+    tokenReady: "ටෝකනය ජනනය විය!",
+    yourToken: "ඔබගේ ටෝකන් අංකය",
+    estWait: "රැඳීමේ කාලය", ahead: "ඉදිරියේ ඇත", counter: "කවුන්ටරය",
+    proceedMsg: "කරුණාකර රැඳීමේ ප්‍රදේශයට යන්න.",
+    thankYou: "අබාන්ස් සේවා මධ්‍යස්ථානයට පැමිණීමට ස්තූතියි.",
+    print: "🖨  ටෝකනය මුද්‍රණය", home: "මුල් පිටුවට",
+    nowServing: "දැන් සේවය", upNext: "ඊළඟ", media: "මාධ්‍ය"
+  },
+  ta: {
+    centerName: "அபான்ஸ் சேவை மையம்",
+    tagline: "வீட்டு மற்றும் வணிக உபகரணங்களுக்கான நம்பகமான சேவை",
+    selectService: "சேவையைத் தேர்ந்தெடுக்கவும்",
+    tokensToday: "இன்றைய டோக்கன்கள்",
+    services: [
+    { name: "காத்திருக்கும் போது பழுதுபார்ப்பு", desc: "‘சிறு உபகரண’ பழுதுகளுக்கு, விரைவு சேவை கவுண்டரில் ஒப்படைத்து விரைவான சேவை பெறுங்கள்.", featured: true },
+    { name: "பழுதுபார்ப்பு விசாரணை", desc: "உத்தரவாத & உத்தரவாதமற்ற பழுதுபார்ப்பு" },
+    { name: "பொருள் பெறுதல்", desc: "பழுதுபார்க்கப்பட்ட உபகரணத்தை பெறுங்கள்" },
+    { name: "உதிரி பாகங்கள் விற்பனை", desc: "உண்மையான உதிரி பாகங்கள்" },
+    { name: "கொடுப்பனவுகள்", desc: "சேவைகள் & பழுதுபார்ப்புகளுக்கு பணம் செலுத்துங்கள்" },
+    { name: "A/C சேவை ஒப்பந்தம்", desc: "புதிய & புதுப்பித்தல் A/C சேவை ஒப்பந்தங்கள்" },
+    { name: "புகார்கள்", desc: "புகார் அளிக்கவும் அல்லது சிக்கலை மேலெழுப்பவும்", noCount: true },
+    { name: "பொது விசாரணை", desc: "கேள்விகள், கருத்து & ஆதரவு" }],
+
+    waiting: "காத்திருக்கிறார்கள்",
+    detailsTitle: "வாடிக்கையாளர் விவரங்கள்",
+    detailsSubtitle: "டோக்கன் பெற உங்கள் தகவலை உள்ளிடவும்",
+    back: "← திரும்பு",
+    mobileNo: "கைப்பேசி எண்", mobilePH: "07X XXX XXXX",
+    fullName: "முழு பெயர்", namePH: "உங்கள் முழு பெயரை உள்ளிடவும்",
+    jobNo: "வேலை எண் (விருப்பமானது)", jobPH: "எ.கா. HUHACA010126W0000",
+    generate: "டோக்கனை உருவாக்கு",
+    tokenReady: "டோக்கன் உருவாக்கப்பட்டது!",
+    yourToken: "உங்கள் டோக்கன் எண்",
+    estWait: "மதிப்பிடப்பட்ட காத்திருப்பு", ahead: "முன்னால் உள்ளவர்கள்", counter: "கவுண்டர்",
+    proceedMsg: "தயவுசெய்து காத்திருப்பு பகுதிக்கு செல்லுங்கள்.",
+    thankYou: "அபான்ஸ் சேவை மையத்திற்கு வந்தமைக்கு நன்றி.",
+    print: "🖨  டோக்கன் அச்சிடு", home: "முகப்புக்கு திரும்பு",
+    nowServing: "இப்போது சேவை", upNext: "அடுத்தது", media: "ஊடக காட்சி"
+  }
+};
+
+/* ── QWERTY KEYBOARD ── */
+const QWERTY_ROWS = [
+['`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='],
+['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\\'],
+['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', "'"],
+['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/']];
+
+const SH = { '`': '~', '1': '!', '2': '@', '3': '#', '4': '$', '5': '%', '6': '^', '7': '&', '8': '*', '9': '(', '0': ')', '-': '_', '=': '+', '[': '{', ']': '}', '\\': '|', ';': ':', '\'': '"', ',': '<', '.': '>', '/': '?' };
+const NUM_ROWS = [['7', '8', '9'], ['4', '5', '6'], ['1', '2', '3'], ['+', '0', '.']];
+
+function VirtualKeyboard({ fieldLabel, value, onChange, onDone, mode = 'text' }) {
+  const [caps, setCaps] = useState(false);
+  const [shift, setShift] = useState(false);
+  const [kbMode, setKbMode] = useState(mode === 'numeric' ? 'num' : 'abc');
+  const press = (ch) => {const o = shift || caps ? SH[ch] || ch.toUpperCase() : ch;onChange(value + o);if (shift) setShift(false);};
+
+  if (mode === 'numeric') {
+    const KEYS = [
+      { n: '1', s: '' },     { n: '2', s: 'ABC' }, { n: '3', s: 'DEF' },
+      { n: '4', s: 'GHI' },  { n: '5', s: 'JKL' }, { n: '6', s: 'MNO' },
+      { n: '7', s: 'PQRS' }, { n: '8', s: 'TUV' }, { n: '9', s: 'WXYZ' }];
+
+    return (
+      <>
+        <div className="vkb-backdrop" onClick={onDone} />
+        <div className="vkb-wrap numpad">
+          <div className="vkb-numpad-display">
+            <div className="vkb-numpad-label">{fieldLabel}</div>
+            <div className="vkb-numpad-value">{value || <span style={{ opacity: .35 }}>—</span>}</div>
+          </div>
+          <div className="vkb-numpad-grid">
+            {KEYS.map((k) =>
+              <button key={k.n} className="vkb-numpad-key" onClick={() => onChange(value + k.n)}>
+                <div className="vkb-numpad-num">{k.n}</div>
+                {k.s && <div className="vkb-numpad-sub">{k.s}</div>}
+              </button>
+            )}
+            <button className="vkb-numpad-key dark" onClick={() => onChange(value + '.')}>
+              <div className="vkb-numpad-num">.</div>
+            </button>
+            <button className="vkb-numpad-key" onClick={() => onChange(value + '0')}>
+              <div className="vkb-numpad-num">0</div>
+            </button>
+            <button className="vkb-numpad-key dark" onClick={() => onChange(value.slice(0, -1))}>
+              <div className="vkb-numpad-num">⌫</div>
+            </button>
+          </div>
+          <button className="vkb-numpad-done" onClick={onDone}>Done ✓</button>
+        </div>
+      </>);
+
+  }
+
+  return (
+    <>
+      <div className="vkb-backdrop" onClick={onDone} />
+      <div className="vkb-wrap">
+        <div className="vkb-bar">
+          <div className="vkb-field-label">{fieldLabel}</div>
+          <div className="vkb-value">{value || <span style={{ opacity: .3 }}>—</span>}</div>
+          <button className="vkb-done-btn" onClick={onDone}>Done ✓</button>
+        </div>
+        {mode !== 'numeric' &&
+        <div className="vkb-mode-bar">
+            <button className={`vkb-mode-btn ${kbMode === 'abc' ? 'active' : ''}`} onClick={() => setKbMode('abc')}>ABC</button>
+            <button className={`vkb-mode-btn ${kbMode === 'num' ? 'active' : ''}`} onClick={() => setKbMode('num')}>123</button>
+          </div>
+        }
+        <div className="vkb-rows">
+          {kbMode === 'abc' ? <>
+            {QWERTY_ROWS.map((row, ri) =>
+            <div className="vkb-row" key={ri}>
+                {ri === 3 && <button className={`vkb-key action wide-1-5 ${caps ? 'caps-on' : ''}`} onClick={() => {setCaps((c) => !c);setShift(false);}}>⇪ Caps</button>}
+                {row.map((k) => <button key={k} className="vkb-key" onClick={() => press(k)}>{shift || caps ? SH[k] || k.toUpperCase() : k}</button>)}
+                {ri === 2 && <button className="vkb-key action wide-1-5" onClick={() => setShift((s) => !s)} style={shift ? { background: 'var(--brand)', color: '#fff' } : {}}>⇧ Shift</button>}
+                {ri === 3 && <button className="vkb-key backspace wide-1-5" onClick={() => onChange(value.slice(0, -1))}>⌫</button>}
+              </div>
+            )}
+            <div className="vkb-row">
+              <button className="vkb-key action wide-1-5" onClick={() => onChange('')}>Clear</button>
+              <button className="vkb-key wide-5" onClick={() => onChange(value + ' ')}>Space</button>
+              <button className="vkb-key action wide-2" onClick={onDone}>↵ Enter</button>
+            </div>
+          </> : <>
+            {NUM_ROWS.map((row, ri) =>
+            <div className="vkb-row" key={ri}>
+                {row.map((k) => <button key={k} className="vkb-key" style={{ fontSize: '22px', fontWeight: '600' }} onClick={() => onChange(value + k)}>{k}</button>)}
+              </div>
+            )}
+            <div className="vkb-row">
+              <button className="vkb-key action" onClick={() => onChange('')}>Clear</button>
+              <button className="vkb-key backspace wide-2" onClick={() => onChange(value.slice(0, -1))}>⌫ Backspace</button>
+              <button className="vkb-key action" onClick={onDone}>✓ Done</button>
+            </div>
+          </>}
+        </div>
+      </div>
+    </>);
+
+}
+
+/* ── SHARED HEADER ── */
+function Header({ title, lang, onLangClick, clock }) {
+  return (
+    <div className="app-header">
+      <div className="header-brand">
+        <div className="header-logo">Abans</div>
+        <div className="header-sep" />
+        <div className="header-title">{title}</div>
+      </div>
+      <div className="header-right">
+        <button className="header-lang-btn" onClick={onLangClick}>
+          🌐 {lang === 'en' ? 'ENG' : lang === 'si' ? 'සිං' : 'தமி'}
+        </button>
+        <div className="header-time">🕐 {clock}</div>
+      </div>
+    </div>);
+
+}
+
+/* ── DETAILS SCREEN ── */
+function DetailsScreen({ t, service, onBack, onGenerate, lang, clock, onLangClick }) {
+  const [name, setName] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [jobNo, setJobNo] = useState('');
+  const [kbField, setKbField] = useState(null);
+  const valMap = { name, mobile, jobNo };
+  const setMap = { name: setName, mobile: setMobile, jobNo: setJobNo };
+  const labelMap = { name: t.fullName, mobile: t.mobileNo, jobNo: t.jobNo };
+  const modeMap = { name: 'text', mobile: 'numeric', jobNo: 'text' };
+  const canGen = name.trim().length > 1 && mobile.length >= 9;
+  return (
+    <div className="screen-wrap">
+      <Header title={t.centerName} lang={lang} clock={clock} onLangClick={onLangClick} />
+      <div className="details-screen anim-fade">
+        <div className="details-top">
+          <button className="back-btn" onClick={onBack}>{t.back}</button>
+          <div className="details-heading">{t.detailsTitle}</div>
+          <div className="details-sub">{t.detailsSubtitle}</div>
+          <div className="service-chip">✦ {service}</div>
+        </div>
+        <div className="details-content">
+          <div className="form-col">
+            <div className="form-group">
+              <div className="form-label">{t.mobileNo}</div>
+              <input className={`form-input ${mobile ? 'has-val' : ''}`} readOnly type="tel"
+              placeholder={t.mobilePH} value={mobile}
+              onClick={() => setKbField('mobile')}
+              style={kbField === 'mobile' ? { borderColor: 'var(--brand)' } : {}} />
+            </div>
+            <div className="form-group">
+              <div className="form-label">{t.fullName}</div>
+              <input className={`form-input ${name ? 'has-val' : ''}`} readOnly
+              placeholder={t.namePH} value={name}
+              onClick={() => setKbField('name')}
+              style={kbField === 'name' ? { borderColor: 'var(--brand)' } : {}} />
+            </div>
+            <div className="form-group">
+              <div className="form-label">{t.jobNo}</div>
+              <input className={`form-input ${jobNo ? 'has-val' : ''}`} readOnly
+              placeholder={t.jobPH} value={jobNo}
+              onClick={() => setKbField('job')}
+              style={kbField === 'job' ? { borderColor: 'var(--brand)' } : {}} />
+            </div>
+            <button className="generate-btn" disabled={!canGen}
+            onClick={() => canGen && onGenerate({ name, mobile, jobNo })}>{t.generate}</button>
+          </div>
+        </div>
+        {kbField &&
+        <VirtualKeyboard
+          fieldLabel={labelMap[kbField]}
+          value={valMap[kbField]}
+          mode={modeMap[kbField]}
+          onChange={(v) => setMap[kbField](v)}
+          onDone={() => setKbField(null)} />
+
+        }
+      </div>
+    </div>);
+
+}
+
+/* ── TV SCREEN ── */
+function TVScreen({ t, clock, lang, onLangClick }) {
+  const [activeTab, setActiveTab] = useState('promo');
+  const queue = [
+  { num: 38, counter: 'Counter 03', type: 'Repair' },
+  { num: 39, counter: 'Counter 05', type: 'Spare Parts' },
+  { num: 40, counter: 'Counter 02', type: 'Quick Service' },
+  { num: 41, counter: 'Counter 04', type: 'Payments' },
+  { num: 43, counter: 'Counter 01', type: 'Product Pickup' }];
+
+  const tabs = [{ key: 'promo', label: 'Promo Video' }, { key: 'youtube', label: 'YouTube' }, { key: 'live', label: 'Live Stream' }, { key: 'info', label: 'Info Slide' }];
+  const mc = {
+    promo: { icon: <><rect x="2" y="2" width="20" height="20" rx="4" /><polygon points="10 8 16 12 10 16 10 8" /></>, label: 'Promotional Video', hint: 'Upload an MP4 file or enter a video URL below' },
+    youtube: { icon: <><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z" /><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" /></>, label: 'YouTube Video', hint: 'Paste a YouTube link to display it here' },
+    live: { icon: <><circle cx="12" cy="12" r="2" /><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14" /></>, label: 'Live Match / Stream', hint: 'Enter an RTMP or HLS stream URL below' },
+    info: { icon: <><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></>, label: 'Info / Slide', hint: 'Upload an image or PDF to display here' }
+  }[activeTab];
+  return (
+    <div className="screen-wrap">
+      <Header title={t.centerName} lang={lang} clock={clock} onLangClick={onLangClick} />
+      <div className="tv-screen anim-fade">
+        <div className="tv-body">
+          <div className="tv-left">
+            <div className="tv-now-serving">
+              <div className="tv-ns-label">{t.nowServing}</div>
+              <div className="tv-ns-num anim-pulse">42</div>
+              <div className="tv-ns-sub">Repair</div>
+              <div className="tv-ns-counter">Counter 06</div>
+            </div>
+            <div className="tv-queue-list">
+              <div className="tv-queue-header">{t.upNext}</div>
+              {queue.map((q, i) =>
+              <div key={i} className="tv-qitem">
+                  <div className="tv-qitem-num">{q.num}</div>
+                  <div className="tv-qitem-right">
+                    <div className="tv-qitem-counter">{q.counter}</div>
+                    <div className="tv-qitem-type">{q.type}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="tv-right">
+            <div className="tv-media-header">
+              <div className="tv-media-title">{t.media}</div>
+              <div className="tv-media-tabs">
+                {tabs.map((tab) =>
+                <button key={tab.key} className={`tv-tab ${activeTab === tab.key ? 'active' : ''}`} onClick={() => setActiveTab(tab.key)}>{tab.label}</button>
+                )}
+              </div>
+            </div>
+            <div className="tv-media-frame">
+              <div className="tv-media-icon"><svg viewBox="0 0 24 24">{mc.icon}</svg></div>
+              <div className="tv-media-label-big">{mc.label}</div>
+              <div className="tv-media-hint">{mc.hint}</div>
+              <div className="tv-url-input-wrap">
+                <input className="tv-url-input" placeholder="Paste URL or file path here…" />
+                <button className="tv-url-btn">Load</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="tv-footer-bar">
+          <div className="tv-contact">
+            <span>🌐 abanservice.lk</span>
+            <span>📞 011 2222 888</span>
+            <span>✉ customerservice@abansgroup.com</span>
+          </div>
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.2)' }}>{new Date().toLocaleDateString('en-CA')}</div>
+        </div>
+      </div>
+    </div>);
+
+}
+
+/* ── MAIN APP ── */
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "lang": "en",
+  "showCount": true
+} /*EDITMODE-END*/;
+
+function App() {
+  const [screen, setScreen] = useState(() => localStorage.getItem('qms_scr') || 'lang');
+  const [lang, setLang] = useState(() => localStorage.getItem('qms_lang') || 'en');
+  const [service, setService] = useState('');
+  const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
+  const [clock, setClock] = useState('');
+
+  useEffect(() => {
+    const tick = () => setClock(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+    tick();const id = setInterval(tick, 10000);return () => clearInterval(id);
+  }, []);
+  useEffect(() => {localStorage.setItem('qms_scr', screen);}, [screen]);
+  useEffect(() => {localStorage.setItem('qms_lang', lang);}, [lang]);
+
+  const go = (s) => setScreen(s);
+  const t = S[lang];
+  const onLangClick = () => go('lang');
+
+  // Tweaks bridge
+  useEffect(() => {
+    window.applyTweak = (key, val) => {
+      if (key === 'lang') {setLang(val);localStorage.setItem('qms_lang', val);}
+      if (key === 'screen') go(val);
+      const upd = { ...tweaks, [key]: val };setTweaks(upd);
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [key]: val } }, '*');
+    };
+    window.applyToggle = (key, togId) => {
+      const nv = !document.getElementById(togId).classList.contains('on');
+      document.getElementById(togId).classList.toggle('on', nv);
+      const upd = { ...tweaks, [key]: nv };setTweaks(upd);
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [key]: nv } }, '*');
+    };
+    window.addEventListener('message', (e) => {
+      if (e.data?.type === '__activate_edit_mode') document.getElementById('tweaks-panel').classList.add('visible');
+      if (e.data?.type === '__deactivate_edit_mode') document.getElementById('tweaks-panel').classList.remove('visible');
+    });
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+  }, []);
+
+  // Language screen
+  if (screen === 'lang') return (
+    <div className="screen-wrap">
+      <div className="lang-screen anim-fade">
+        <div className="lang-welcome" style={{ color: "rgb(0, 0, 0)", fontWeight: "600" }}>Welcome to</div>
+        <div className="lang-logo">Abans</div>
+        <div className="lang-divider" />
+        <div className="lang-tagline" style={{ color: "rgb(0, 0, 0)", fontWeight: "600" }}>Select your preferred Language</div>
+        <div className="lang-tagline" style={{ color: "rgb(0, 0, 0)", fontWeight: "600" }}>ඔබ කැමති භාෂාව තෝරාගන්න</div>
+        <div className="lang-tagline" style={{ color: "rgb(0, 0, 0)", fontWeight: "600" }}>உங்களுக்கு விருப்பமான மொழியைத் தேர்ந்தெடுக்கவும்</div>
+        <div className="lang-cards">
+          {[{ code: 'en', name: 'English', native: 'English' }, { code: 'si', name: 'සිංහල', native: 'සිංහල' }, { code: 'ta', name: 'தமிழ்', native: 'தமிழ்' }].map((l) =>
+          <div key={l.code} className="lang-card anim-scale" onClick={() => {setLang(l.code);localStorage.setItem('qms_lang', l.code);go('welcome');}}>
+              <div className="lang-name">{l.name}</div>
+              {l.native !== l.name && <div className="lang-native">{l.native}</div>}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>);
+
+
+  // Welcome screen
+  if (screen === 'welcome') return (
+    <div className="screen-wrap">
+      <Header title={t.centerName} lang={lang} clock={clock} onLangClick={onLangClick} />
+      <div className="welcome-body anim-fade">
+        <div className="welcome-hero">
+          <div className="hero-text">
+            <div className="hero-greeting">👋 {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening'}</div>
+            <div className="hero-title">{t.centerName}</div>
+            <div className="hero-desc">{t.tagline}</div>
+          </div>
+          <div className="hero-badge">
+            <div className="hero-badge-val">{t.tokensToday}</div>
+            <div className="hero-badge-num">47</div>
+            <div className="hero-badge-sub">issued today</div>
+          </div>
+        </div>
+        <div className="services-area">
+          <div className="services-area-label">{t.selectService}</div>
+          <div className="services-grid">
+            {t.services.map((s, i) =>
+            <div key={i} className={`svc-card anim-fade ${s.featured?'featured':''}`} style={{ animationDelay: `${i * .05}s` }}
+            onClick={() => {setService(s.name);go('details');}}>
+                <div className="svc-title">{s.name}</div>
+                <div className="svc-desc">{s.desc}</div>
+                <div className="svc-footer">
+                  {tweaks.showCount && !s.noCount && <div className="svc-waiting">{[3, 8, 2, 5, 1, 4, 0, 2][i]} {t.waiting}</div>}
+                  <div className="svc-arrow">→</div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>);
+
+
+  // Details screen
+  if (screen === 'details') return (
+    <DetailsScreen t={t} service={service} lang={lang} clock={clock}
+    onLangClick={onLangClick}
+    onBack={() => go('welcome')}
+    onGenerate={(c) => {go('token');}} />);
+
+
+
+  // Token screen
+  if (screen === 'token') return (
+    <div className="screen-wrap">
+      <Header title={t.yourToken} lang={lang} clock={clock} onLangClick={onLangClick} />
+      <div className="token-screen anim-fade">
+        <div className="token-content">
+          <div className="token-check anim-scale">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+          </div>
+          <div className="token-gen-label">{t.tokenReady}</div>
+          <div className="token-svc-name">{service}</div>
+          <div className="token-card-big anim-scale">
+            <div className="token-card-label">{t.yourToken}</div>
+            <div className="token-num">42</div>
+            <div className="token-card-sub">{service}</div>
+          </div>
+          <div className="token-stats">
+            <div className="token-stat"><div className="token-stat-label">{t.estWait}</div><div className="token-stat-val">~18 min</div></div>
+            {service !== 'Complaints' && service !== 'පැමිණිලි' && service !== 'புகார்கள்' &&
+              <div className="token-stat"><div className="token-stat-label">{t.ahead}</div><div className="token-stat-val">4</div></div>}
+            <div className="token-stat"><div className="token-stat-label">{t.counter}</div><div className="token-stat-val">06</div></div>
+          </div>
+          <div className="token-msg">{t.proceedMsg}<br />{t.thankYou}</div>
+          <div className="token-actions-row">
+            <button className="btn-primary" onClick={() => window.print()}>{t.print}</button>
+            <button className="btn-ghost" onClick={() => go('lang')}>{t.home}</button>
+          </div>
+        </div>
+      </div>
+    </div>);
+
+
+  // TV screen
+  if (screen === 'tv') return <TVScreen t={t} clock={clock} lang={lang} onLangClick={onLangClick} />;
+
+  return null;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
